@@ -412,7 +412,7 @@ class PickDataset(Dataset):
         self.task_texts = {}
         
         # 直接使用 Docker 内部映射好的绝对路径
-        task_text_path = "/results/tutorial/task_texts.json" 
+        task_text_path = "/results/tutorial/task_texts.json" #################注意：这个路径需要和 Docker 内部的实际路径一致
         
         if os.path.exists(task_text_path):
             try:

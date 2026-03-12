@@ -73,7 +73,7 @@ def convert_isaac_to_graspgen(yaml_file_path, output_dir):
 
 if __name__ == "__main__":
     # 你可以在这里直接修改路径，或者使用 argparse 传参
-    YAML_PATH = "/home/zyp/Desktop/zyp_dataset/knife_filtered_up.yaml" # 替换为你的 yaml 文件路径
+    YAML_PATH = "/home/zyp/Desktop/zyp_dataset/knife_filtered_down.yaml" # 替换为你的 yaml 文件路径
     OUTPUT_DIR = "/home/zyp/Desktop/zyp_dataset"
     
     convert_isaac_to_graspgen(YAML_PATH, OUTPUT_DIR)
