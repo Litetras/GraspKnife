@@ -1,0 +1,10 @@
+# ninja log v7
+0	17344	1763985601642511377	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-311/pointnet2_ops/_ext-src/src/group_points.o	5271891dcd5b7433
+1	17383	1763985601643511421	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-311/pointnet2_ops/_ext-src/src/sampling_gpu.o	edfc1bd990f580ef
+1	17441	1763985601643511421	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-311/pointnet2_ops/_ext-src/src/group_points_gpu.o	5098df0ad22dfb58
+0	17612	1763985601642511377	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-311/pointnet2_ops/_ext-src/src/bindings.o	f9106cde56bbf24d
+0	17893	1763985601642511377	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-311/pointnet2_ops/_ext-src/src/ball_query_gpu.o	5ca65420ee5ce8e9
+1	18336	1763985601643511421	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-311/pointnet2_ops/_ext-src/src/interpolate.o	6d0d5d05affab6f9
+1	18663	1763985601643511421	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-311/pointnet2_ops/_ext-src/src/interpolate_gpu.o	45968f2e0feb9ef8
+0	18863	1763985601642511377	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-311/pointnet2_ops/_ext-src/src/ball_query.o	2c3584e447641d28
+1	19315	1763985601643511421	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-311/pointnet2_ops/_ext-src/src/sampling.o	a1d7dc0841798e63

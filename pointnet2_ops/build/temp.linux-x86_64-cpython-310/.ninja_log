@@ -1,0 +1,19 @@
+# ninja log v7
+18	16468	1763300162020943383	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/sampling.o	96001c4ea7a56659
+17	16681	1763300162019943318	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/ball_query.o	f186c674d289d264
+18	17219	1763300162020943383	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/interpolate.o	ac8713e4d59b1e26
+18	17499	1763300162020943383	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/group_points.o	5032d976ffe4af1c
+18	17918	1763300162020943383	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/sampling_gpu.o	fc97493f5e4d5553
+17	17962	1763300162019943318	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/ball_query_gpu.o	f591e9d6c55031e4
+18	18419	1763300162020943383	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/interpolate_gpu.o	ecd40602bc192819
+18	18586	1763300162020943383	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/group_points_gpu.o	47edbb78d391a1f0
+17	20309	1763300162019943318	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/bindings.o	3023c3c7fb3ec849
+18	16070	1763306940238236492	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/bindings.o	7f2274135de6b9c4
+18	17066	1763306940238236492	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/ball_query.o	22d0be5529b770b
+18	17879	1763306940238236492	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/group_points_gpu.o	fcd0d3b59f05e7f9
+18	18202	1763306940238236492	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/interpolate.o	261db9a0d2162ed0
+19	18870	1763306940239236537	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/sampling.o	9f3767b79e25d237
+18	19290	1763306940238236492	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/ball_query_gpu.o	d42dab4e7f21cbd8
+19	19584	1763306940239236537	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/interpolate_gpu.o	8f12c553864143e
+19	19596	1763306940239236537	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/sampling_gpu.o	482012ab27d30f61
+18	20122	1763306940238236492	/home/zyp/GraspGen/pointnet2_ops/build/temp.linux-x86_64-cpython-310/pointnet2_ops/_ext-src/src/group_points.o	e64481fd8fb1a7a3
