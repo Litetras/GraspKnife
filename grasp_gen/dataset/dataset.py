@@ -406,7 +406,7 @@ class PickDataset(Dataset):
         cache_dir = cache_dir
         self.patch_width = patch_width
         self.load_contact = load_contact
-       # === 👇 添加以下代码 👇 ===#################################################
+       # === 👇 添加以下代码 👇 ===#################################################666
        # ================= 新增：读取 JSON 任务文本 =================
         self.tasks = tasks  # 保存 yaml 传进来的 tasks (例如 ['up'])
         self.task_texts = {}
@@ -1356,7 +1356,7 @@ class ObjectPickDataset(PickDataset):
         
         # ================= 新增：打印输出用于调试 =================
         # 加一个明显的前缀 [TEXT-DEBUG]，方便你在满屏的日志里一眼看到它
-        print(f"\n[TEXT-DEBUG] 物体: {obj_name} | 任务: {current_task} | 送入模型的句子: '{outputs['text']}'\n")
+        #print(f"\n[TEXT-DEBUG] 物体: {obj_name} | 任务: {current_task} | 送入模型的句子: '{outputs['text']}'\n")
         # =========================================================
 
         return outputs
