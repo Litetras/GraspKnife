@@ -92,4 +92,5 @@ logs/*
 cache/
 misc/*
 data/*
-models/
+models/checkpoints/
+models/sample_data/
