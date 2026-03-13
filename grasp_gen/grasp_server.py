@@ -91,6 +91,7 @@ class GraspGenSampler:
     def run_inference(
         object_pc: np.ndarray | torch.Tensor,
         grasp_sampler: "GraspGenSampler",
+        text=None,  # <--- 新增这行，接受语言指令参数
         grasp_threshold: float = -1.0,
         num_grasps: int = 200,
         topk_num_grasps: int = -1,
@@ -128,6 +129,7 @@ class GraspGenSampler:
             t0 = time.time()
             output = grasp_sampler.sample(
                 object_pc,
+                text=text,  # <--- 新增这行，把 text 接力传给 sample 函数
                 threshold=grasp_threshold,
                 num_grasps=num_grasps,
                 remove_outliers=remove_outliers,
@@ -168,6 +170,7 @@ class GraspGenSampler:
     def sample(
         self,
         obj_pcd: np.ndarray,
+        text=None,          # <--- 新增这行，接收传过来的 text
         threshold: float = -1.0,
         num_grasps: int = 200,
         remove_outliers: bool = True,
@@ -196,6 +199,12 @@ class GraspGenSampler:
             [obj_mean_points, obj_pts_color[:, :3].squeeze(1)], dim=-1
         ).float()
         data["points"] = obj_mean_points
+        # ==== 新增：把 text 塞进数据字典 ====
+        if text is not None:
+            # 如果外面传进来的是 list (例如 ["grasp the handle"])，我们先解开它。
+            # 因为下面马上会调用 collate([data])，它会自动再帮我们打包成 Batch 的列表格式。
+            data["text"] = text[0] if isinstance(text, list) else text
+        # ====================================
 
         data_batch = collate([data])
         grasp_key = "grasps"

@@ -85,6 +85,14 @@ def parse_args():
         default=2000,
         help="Number of points to sample from the mesh surface",
     )
+    # ================= 新增：语言指令参数 =================##########
+    parser.add_argument(
+        "--text",
+        type=str,
+        default="grasp the handle",  # 设置一个默认的测试指令
+        help="Language instruction for the grasp task (e.g., 'grasp the handle')",
+    )
+    # ==================================================#########
     parser.add_argument(
         "--output_file",
         type=str,
@@ -163,6 +171,19 @@ if __name__ == "__main__":
     if not args.no_visualization and obj_mesh is not None:
         visualize_mesh(vis, "object_mesh", obj_mesh, color=[169, 169, 169])
         visualize_pointcloud(vis, "pc", pc, pc_color, size=0.0025)
+
+    # ==== 修改：把文本指令 args.text 传给 run_inference ====#######3
+    print(f"Using language instruction: '{args.text}'")
+    grasps_inferred, grasp_conf_inferred = GraspGenSampler.run_inference(
+        pc,
+        grasp_sampler,
+        text=[args.text],  # <--- 新增这行，打包成 list 对应 batch size 1
+        grasp_threshold=args.grasp_threshold,
+        num_grasps=args.num_grasps,
+        topk_num_grasps=args.topk_num_grasps,
+        remove_outliers=False,
+    )
+    # =======================================================######3
 
     # Run inference on point cloud
     grasps_inferred, grasp_conf_inferred = GraspGenSampler.run_inference(

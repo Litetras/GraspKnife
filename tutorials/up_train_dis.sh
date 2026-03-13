@@ -79,7 +79,7 @@ cd $CODE_DIR && pip install -e . && cd $CODE_DIR/scripts && \
     discriminator.ptv3.grid_size=0.01 \
     data.num_grasps_per_object=$NUM_GRASPS_PER_OBJ \
     data.load_discriminator_dataset=True \
-    data.discriminator_ratio=$RATIO 
+    data.discriminator_ratio=$RATIO \
 ##############################################
     discriminator.use_language_conditioning=True \
     discriminator.clip_backbone="ViT-B/32" \
