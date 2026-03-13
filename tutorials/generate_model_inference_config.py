@@ -102,6 +102,19 @@ def create_config_file(gen_log_dir, dis_log_dir, models_dir):
     else:
         print(f"Warning: No diffusion settings found in generator config")
 
+# ================= 新增：拷贝语言模态参数 =================######################
+    lang_keys = ["use_language_conditioning", "clip_backbone", "lang_proj_dim", "tasks"]
+    if "discriminator" not in config:
+        config["discriminator"] = {}
+        
+    for key in lang_keys:
+        if key in gen_config.get("diffusion", {}):
+            config["discriminator"][key] = gen_config["diffusion"][key]
+            print(f"Copied language setting '{key}' to discriminator config")
+# =======================================================#####################
+
+
+
     # Override the checkpoint paths
     if "eval" not in config:
         config["eval"] = {}
