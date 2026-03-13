@@ -189,6 +189,9 @@ if __name__ == "__main__":
     grasps_inferred, grasp_conf_inferred = GraspGenSampler.run_inference(
         pc,
         grasp_sampler,
+        # ======= 加上下面这行 =======
+        text=[args.text],
+        # ==========================
         grasp_threshold=args.grasp_threshold,
         num_grasps=args.num_grasps,
         topk_num_grasps=args.topk_num_grasps,
