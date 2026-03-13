@@ -1,7 +1,7 @@
 data:
     root_dir: ''
     cache_dir: '/tmp/graspgen_train_cache/'
-    tasks: ['up'] # #########################关键词
+    tasks: ['task1'] # #########################关键词
     num_points: 16384
     num_object_points: 1024
     cam_coord: False

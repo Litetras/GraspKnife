@@ -40,14 +40,13 @@ def parse_args():
     parser.add_argument(
         "--mesh_file",
         type=str,
-        #required=True,####################################################################ZYP
-        default="/home/zyp/GraspGen/models/sample_data/meshes/plate.obj",#################################ZYP Add whole line
+        required=True,
         help="Path to the mesh file (obj, stl, or ply)",
     )
     parser.add_argument(
         "--gripper_config",
         type=str,
-        default="/home/zyp/GraspGen/models/checkpoints/graspgen_robotiq_2f_140.yml",
+        required=True,
         help="Path to gripper configuration YAML file",
     )
     parser.add_argument(
@@ -89,7 +88,7 @@ def parse_args():
     parser.add_argument(
         "--text",
         type=str,
-        default="grasp the handle",  # 设置一个默认的测试指令
+        required=True,
         help="Language instruction for the grasp task (e.g., 'grasp the handle')",
     )
     # ==================================================#########
@@ -185,18 +184,6 @@ if __name__ == "__main__":
     )
     # =======================================================######3
 
-    # Run inference on point cloud
-    grasps_inferred, grasp_conf_inferred = GraspGenSampler.run_inference(
-        pc,
-        grasp_sampler,
-        # ======= 加上下面这行 =======
-        text=[args.text],
-        # ==========================
-        grasp_threshold=args.grasp_threshold,
-        num_grasps=args.num_grasps,
-        topk_num_grasps=args.topk_num_grasps,
-        remove_outliers=False,
-    )
 
     if len(grasps_inferred) > 0:
         grasp_conf_inferred = grasp_conf_inferred.cpu().numpy()
@@ -205,6 +192,19 @@ if __name__ == "__main__":
         print(
             f"Inferred {len(grasps_inferred)} grasps, with scores ranging from {grasp_conf_inferred.min():.3f} - {grasp_conf_inferred.max():.3f}"
         )
+
+
+        # ================= 新增：将抓取姿态旋转 90 度 =================##############
+        print("\n[注意]：生成的抓取姿态已绕局部 Z 轴旋转了 90 度！\n")
+        
+        # 创建绕 Z 轴旋转 90 度 (pi/2) 的齐次变换矩阵
+        # 注：如果你使用的夹爪模型的接近方向是 X 轴或 Y 轴，
+        # 请将 [0, 0, 1] 改为 [1, 0, 0] 或 [0, 1, 0]
+        R_90 = tra.rotation_matrix(np.pi / 2, [0, 0, 1])
+        
+        # 将旋转矩阵右乘到每个抓取矩阵上（表示在夹爪局部坐标系下进行旋转）
+        grasps_inferred = np.array([g @ R_90 for g in grasps_inferred])
+        # ==============================================================#################
 
         # Visualize inferred grasps
         if not args.no_visualization:
