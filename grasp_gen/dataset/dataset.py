@@ -1339,24 +1339,24 @@ class ObjectPickDataset(PickDataset):
                 )
         if len(outputs["points"].shape) == 2:
             outputs["points"] = outputs["points"].unsqueeze(0)
-        # ---- 语言条件：任务描述文本 ----##############
-
-    # ---- 语言条件：任务描述文本 ----##############
-        # 1. 获取纯净的物体名称 (例如从 "objects/knife_geo.obj" 提取出 "knife_geo")
+# ---- 语言条件：任务描述文本 ----##############
+        # 1. 获取纯净的物体名称 (例如从 "objects/knife_geo_up.obj" 提取出 "knife_geo_up")
         obj_name = os.path.basename(self.scenes[idx]).split('.')[0]
         
-        # 2. 获取当前指定的任务关键词
-        current_task = self.tasks[0] if (hasattr(self, 'tasks') and len(self.tasks) > 0) else 'up'
-        
-        # 3. 查字典分配对应文本
-        if hasattr(self, 'task_texts') and obj_name in self.task_texts and current_task in self.task_texts[obj_name]:
-            outputs["text"] = self.task_texts[obj_name][current_task]
+        # 2. 直接无脑读取 task_texts.json 里的 "task1"
+        if hasattr(self, 'task_texts') and obj_name in self.task_texts and "task1" in self.task_texts[obj_name]:
+            # 这会正确地把 'knife_geo_up' 映射为 "up"，把 'knife_geo_down' 映射为 "down"
+            outputs["text"] = self.task_texts[obj_name]["task1"]
         else:
-            outputs["text"] = f"perform the {current_task} task with the {self.gripper_name} object"
+            # 极限容错：万一 json 没配好，直接看文件名里有没有 up/down
+            if 'down' in obj_name.lower():
+                outputs["text"] = "down"
+            else:
+                outputs["text"] = "up"
         
         # ================= 新增：打印输出用于调试 =================
-        # 加一个明显的前缀 [TEXT-DEBUG]，方便你在满屏的日志里一眼看到它
-        #print(f"\n[TEXT-DEBUG] 物体: {obj_name} | 任务: {current_task} | 送入模型的句子: '{outputs['text']}'\n")
+        # 你可以保留这句 print，重启训练时看前几行输出，绝对就对齐了！
+        # print(f"\n[TEXT-DEBUG] 物体: {obj_name} | 送入模型的句子: '{outputs['text']}'\n")
         # =========================================================
 
         return outputs
