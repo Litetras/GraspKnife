@@ -464,7 +464,7 @@ class PickDataset(Dataset):
             multiplier = 100 if self.split == "train" else 10
             if self.split != "train" and not rotation_augmentation:
                 multiplier = 1
-            self.scenes = [self.scenes[0]] * multiplier
+            self.scenes = self.scenes * multiplier #self.scenes = [self.scenes[0]] * multiplier
             self.overfitting_mode = True
         self.load_patch = load_patch
         # ================= 新增：读取 JSON 任务文本 =================##############
