@@ -1356,7 +1356,7 @@ class ObjectPickDataset(PickDataset):
         
         # ================= 新增：打印输出用于调试 =================
         # 你可以保留这句 print，重启训练时看前几行输出，绝对就对齐了！
-        print(f"\n[TEXT-DEBUG] 物体: {obj_name} | 送入模型的句子: '{outputs['text']}'\n")
+        #print(f"\n[TEXT-DEBUG] 物体: {obj_name} | 送入模型的句子: '{outputs['text']}'\n")
         # =========================================================
 
         return outputs

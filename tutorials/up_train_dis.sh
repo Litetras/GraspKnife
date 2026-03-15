@@ -3,7 +3,7 @@
 # Fixed parameters
 export NGPU=1
 export NWORKER=4
-export NEPOCH=1500 #5000     #单个物体运行可能需
+export NEPOCH=1300 #5000     #单个物体运行可能需
 export BATCH=8
 export PRINT_FREQ=10
 export PLOT_FREQ=10
