@@ -78,6 +78,15 @@ def parse_args():
         help="当return_topk为True时，返回的前k个抓取姿态数量"
     )
 
+    # ==== 新增语言文本参数 ====###########
+    parser.add_argument(
+        "--text",
+        type=str,
+        default="up", 
+        help="语言控制指令，例如 'up', 'down', 'top', 'low'"
+    )
+    # ========================############
+
     return parser.parse_args()
 
 
@@ -178,6 +187,7 @@ if __name__ == "__main__":
             grasp_threshold=args.grasp_threshold,  # 抓取置信度阈值
             num_grasps=args.num_grasps,  # 生成的抓取数量
             topk_num_grasps=args.topk_num_grasps  # 若启用，返回前k个最优抓取
+            text=args.text  # <==== 新增这一行，将文字指令传给底层的模型##############
         )
 
         # 若生成了有效抓取姿态，则进行可视化
