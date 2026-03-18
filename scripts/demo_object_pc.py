@@ -186,7 +186,7 @@ if __name__ == "__main__":
             grasp_sampler,  # 抓取采样器实例
             grasp_threshold=args.grasp_threshold,  # 抓取置信度阈值
             num_grasps=args.num_grasps,  # 生成的抓取数量
-            topk_num_grasps=args.topk_num_grasps  # 若启用，返回前k个最优抓取
+            topk_num_grasps=args.topk_num_grasps, # 若启用，返回前k个最优抓取
             text=args.text  # <==== 新增这一行，将文字指令传给底层的模型##############
         )
 
@@ -197,6 +197,11 @@ if __name__ == "__main__":
             grasps_inferred = grasps_inferred.cpu().numpy()
             # 确保抓取姿态是齐次坐标形式
             grasps_inferred[:, 3, 3] = 1
+            # ================= 新增：将抓取姿态旋转 90 度 =================###########
+            print("\n[注意]：生成的点云抓取姿态已绕局部 Z 轴旋转了 90 度！\n")
+            R_90 = tra.rotation_matrix(np.pi / 2, [0, 0, 1])
+            grasps_inferred = np.array([g @ R_90 for g in grasps_inferred])
+            # ==============================================================#########
             # 根据置信度生成颜色（用于可视化区分不同质量的抓取）
             scores_inferred = get_color_from_score(
                 grasp_conf_inferred, use_255_scale=True
