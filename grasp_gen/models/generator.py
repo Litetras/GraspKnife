@@ -464,39 +464,59 @@ class GraspGenGenerator(nn.Module):
         #     L1 Position Loss：位置 L1 损失
         #     L1 Rotation Loss：旋转 L1 损失 generator.py:376-397
 
+        
+# 2.5 损失函数
         losses = {}
         
-        # =====================================================================#######################
+        # =====================================================================###############
         # 【创新缝合点】：面向任务的语言条件方向引导 Loss (Task-Oriented Direction Guidance Loss)
         # =====================================================================
-        if self.use_language_conditioning and not self.compositional_schedular:
+        if getattr(self, 'use_language_conditioning', False):
             import math
-            # 1. 从 scheduler 中获取当前 timestep 的 alpha_cumprod (\bar{\alpha}_t)
-            alpha_prod_t = self.noise_scheduler.alphas_cumprod[timesteps].to(device).view(-1, 1)
-            beta_prod_t = 1 - alpha_prod_t
             
-            # 2. 扩散模型核心投影公式：从预测的噪声反推当前预测的初始抓取位姿 \hat{x}_0
-            pred_x0 = (noisy_grasps - beta_prod_t ** 0.5 * noise_pred) / (alpha_prod_t ** 0.5)
+            # 1. 兼容不同的 Scheduler，获取对应的 alpha_cumprod (\bar{\alpha}_t)
+            if self.compositional_schedular:
+                # 【你当前运行的分支】：组合模式下，旋转和位置是分开的，我们用旋转的 scheduler 反推
+                alpha_prod_t = self.noise_scheduler_rot.alphas_cumprod[timesteps].to(device).view(-1, 1)
+                beta_prod_t = 1 - alpha_prod_t
+                # 仅反推旋转部分的 \hat{x}_0
+                pred_x0_rot = (noisy_grasps[..., 3:self.output_dim] - beta_prod_t ** 0.5 * noise_pred[..., 3:self.output_dim]) / (alpha_prod_t ** 0.5)
+                # 拼接当前的位置噪声（因为位置对方向没影响），凑齐维度以便转成矩阵
+                pred_x0 = torch.cat([noisy_grasps[..., :3], pred_x0_rot], dim=-1)
+            else:
+                # 【标准模式分支】
+                alpha_prod_t = self.noise_scheduler.alphas_cumprod[timesteps].to(device).view(-1, 1)
+                beta_prod_t = 1 - alpha_prod_t
+                pred_x0 = (noisy_grasps - beta_prod_t ** 0.5 * noise_pred) / (alpha_prod_t ** 0.5)
             
-            # 3. 将还原出的 6D/9D 向量转为 4x4 旋转矩阵
+            # 2. 将还原出的 6D/9D 向量转为 4x4 旋转矩阵
             pred_x0_mat = rt_to_matrix(pred_x0, self.grasp_repr, self.kappa)
             
-            # 4. 提取接近方向 (Approach Direction)，即夹爪坐标系的 Z 轴（旋转矩阵的第三列，索引为2）
+            # 3. 提取接近方向 (Approach Direction)，即夹爪坐标系的 Z 轴（索引为2）
             pred_approach_dir = pred_x0_mat[..., :3, 2] # Shape: [Batch, 3]
             gt_approach_dir = grasps_gt_mat[..., :3, 2] # Shape: [Batch, 3]
             
-            # 5. 计算 SoFar 风格的余弦相似度惩罚 (Cosine Similarity Loss)
+            # 4. 计算 SoFar 风格的余弦相似度
             cos_sim = torch.nn.functional.cosine_similarity(pred_approach_dir, gt_approach_dir, dim=-1)
-            direction_loss = 1.0 - cos_sim.mean()
             
-            # 将方向 Loss 加入总 Loss 中，权重设为 5.0 以强化语言指令的控制力
-            losses["direction_loss"] = (1.0, direction_loss) #如果 direction_loss 的数值与 noise_pred (匹配损失) 的数值在同一个数量级，说明平衡得很好。#如果 dir_acc_30 指标不上升，再慢慢把权重调到 2.0。
+            # 5. 【高阶技巧】基于 SNR 的动态权重 (SNR-based Weighting)，防止早期梯度爆炸
+            dynamic_weight = alpha_prod_t.squeeze(-1) 
+            direction_loss = (1.0 - cos_sim) * dynamic_weight
             
-            # （可选）记录方向准确率到 stats 中，方便在 Tensorboard 中观察收敛情况
+            # 将方向 Loss 加入总 Loss 中，基础权重设为 1.0 即可
+            losses["direction_loss"] = (1.0, direction_loss.mean())
+            
+            # 记录准确率到 Tensorboard
             with torch.no_grad():
                 acc_30 = (cos_sim > math.cos(30 / 180 * math.pi)).float().mean() * 100.0
                 stats["dir_acc_30"] = acc_30
-        # =====================================================================#####################################
+        # =====================================================================###############
+
+        if self.loss_pointmatching:
+            point_matching_loss = compute_grasp_loss(
+                actual_noise_pts_mat, pred_noise_pts_mat, self.ctr_pts
+            )
+            losses["noise_pred"] = (2.0, point_matching_loss)
 
         if self.loss_pointmatching:
             point_matching_loss = compute_grasp_loss(
