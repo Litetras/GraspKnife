@@ -512,11 +512,6 @@ class GraspGenGenerator(nn.Module):
                 stats["dir_acc_30"] = acc_30
         # =====================================================================###############
 
-        if self.loss_pointmatching:
-            point_matching_loss = compute_grasp_loss(
-                actual_noise_pts_mat, pred_noise_pts_mat, self.ctr_pts
-            )
-            losses["noise_pred"] = (2.0, point_matching_loss)
 
         if self.loss_pointmatching:
             point_matching_loss = compute_grasp_loss(
