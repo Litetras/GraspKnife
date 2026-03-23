@@ -197,30 +197,15 @@ class GraspGenGenerator(nn.Module):
             self.text_projection = nn.Linear(
                 self.text_encoder.embed_dim, lang_proj_dim
             )
-        # ==========================================================########
-            # 【架构创新点】：FiLM 特征调制层 (AdaLN-Zero)
-            # 
-            self.film_gamma = nn.Linear(lang_proj_dim, self.num_obs_dim)
-            self.film_beta = nn.Linear(lang_proj_dim, self.num_obs_dim)
-            
-            # 零初始化 (Zero-Initialization)，保证模型初始状态的绝对稳定
-            nn.init.zeros_(self.film_gamma.weight)
-            nn.init.zeros_(self.film_beta.weight)
-            nn.init.zeros_(self.film_gamma.bias)
-            nn.init.zeros_(self.film_beta.bias)
-            
             logger.info(
-                f"Language FiLM Modulation enabled with Zero-Init: CLIP '{clip_backbone}' "
+                f"Language conditioning enabled: CLIP '{clip_backbone}' "
                 f"(dim={self.text_encoder.embed_dim}) -> proj dim={lang_proj_dim}"
             )
-        # ==========================================================########
         # ---------------------------------------------------------------------------
 
         self.diffusion_head = DiffusionNoisePredictionNet(
             diffusion_step_embed_dim=self.diffusion_embed_dim,
-            #observation_embed_dim=self.num_obs_dim + self.lang_proj_dim,
-            # 【关键修改】：不再拼接维度，改回单纯的点云特征维度 self.num_obs_dim
-            observation_embed_dim=self.num_obs_dim,
+            observation_embed_dim=self.num_obs_dim + self.lang_proj_dim,
             sample_embed_dim=self.diffusion_embed_dim,
             sample_dim=self.output_dim,
             attention=self.attention,
@@ -440,18 +425,9 @@ class GraspGenGenerator(nn.Module):
                 text_feat = self.text_encoder(data["text"])          # [N_obj, clip_dim]
                 text_feat = self.text_projection(text_feat)          # [N_obj, lang_proj_dim]
                 text_feat = text_feat[mask_batch]                    # [batch_size, lang_proj_dim]
-                # object_embedding = torch.cat(
-                #     [object_embedding, text_feat], dim=-1) 
-                # ==========================================================
-                # 【架构创新点】：生成调制因子并进行 3D 特征缩放与平移 (FiLM)
-                # ==========================================================
-                gamma = self.film_gamma(text_feat)                  # [batch_size, num_obs_dim]
-                beta = self.film_beta(text_feat)                    # [batch_size, num_obs_dim]
-                
-                # FiLM 核心公式: F_new = F_old * (1 + gamma) + beta
-                object_embedding = object_embedding * (1.0 + gamma) + beta
-            # ---------------------------------------------------------------------
-                                                                   # [batch_size, num_obs_dim + lang_proj_dim]
+                object_embedding = torch.cat(
+                    [object_embedding, text_feat], dim=-1
+                )                                                    # [batch_size, num_obs_dim + lang_proj_dim]
             # ---------------------------------------------------------------------
         else:
             raise NotImplementedError(f"Pose repr {self.pose_repr} not implemented!")
@@ -648,13 +624,9 @@ class GraspGenGenerator(nn.Module):
                     text_feat = self.text_encoder(data["text"])      # [N_obj, clip_dim]
                     text_feat = self.text_projection(text_feat)      # [N_obj, lang_proj_dim]
                     text_feat = text_feat[mask_batch]                # [batch_size, lang_proj_dim]
-                    # object_embedding = torch.cat(
-                    #     [object_embedding, text_feat],)
-                    gamma = self.film_gamma(text_feat)
-                    beta = self.film_beta(text_feat)
-                    
-                    object_embedding = object_embedding * (1.0 + gamma) + beta
-                                                                  # [batch_size, num_obs_dim + lang_proj_dim]
+                    object_embedding = torch.cat(
+                        [object_embedding, text_feat], dim=-1
+                    )                                                # [batch_size, num_obs_dim + lang_proj_dim]
                 # -----------------------------------------------------------------
 
             if self.compositional_schedular:
