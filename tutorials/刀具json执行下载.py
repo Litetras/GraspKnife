@@ -7,8 +7,8 @@ import json
 # ==========================================
 # 配置区域 (请根据需要修改路径)
 # ==========================================
-UID_LIST_FILE = "kitchen_knife_uids_precise.json"  # 刚才筛选好的UID列表
-OUTPUT_DIR = "/home/zyp/Desktop/my_kitchen_knives"  # 最终OBJ存放路径
+UID_LIST_FILE = "all_knife_no_sword_uids.json"  # 刚才筛选好的UID列表
+OUTPUT_DIR = "/home/zyp/Desktop/knives"  # 最终OBJ存放路径
 TARGET_SCALE = 0.2  # 将模型最长边缩放到 0.2米 (20厘米)
 
 # ==========================================

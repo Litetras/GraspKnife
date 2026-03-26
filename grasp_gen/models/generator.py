@@ -193,31 +193,19 @@ class GraspGenGenerator(nn.Module):
         # ---- Language conditioning modules ----------------------------------------
         if self.use_language_conditioning:
             self.text_encoder = TextEncoder(clip_backbone)
-            # 【关键修改1】：直接将 CLIP 维度映射到 3D 特征的维度 self.num_obs_dim
+            # Learnable linear projection from CLIP dim → lang_proj_dim
             self.text_projection = nn.Linear(
-                self.text_encoder.embed_dim, self.num_obs_dim
+                self.text_encoder.embed_dim, lang_proj_dim
             )
-            
-            # ==========================================================
-            # 【架构王炸】：多头交叉注意力融合模块 (Multi-Head Cross-Attention)
-            # ==========================================================
-            # 使用 8 个注意力头，batch_first=True 方便处理张量维度
-            self.cross_attn = nn.MultiheadAttention(
-                embed_dim=self.num_obs_dim, num_heads=8, batch_first=True
-            )
-            # 引入层归一化 (LayerNorm)，保证残差连接后的特征分布稳定
-            self.attn_layer_norm = nn.LayerNorm(self.num_obs_dim)
-            
             logger.info(
-                f"Language Cross-Attention Fusion enabled: CLIP '{clip_backbone}' "
-                f"(dim={self.text_encoder.embed_dim}) -> proj dim={self.num_obs_dim}"
+                f"Language conditioning enabled: CLIP '{clip_backbone}' "
+                f"(dim={self.text_encoder.embed_dim}) -> proj dim={lang_proj_dim}"
             )
         # ---------------------------------------------------------------------------
 
         self.diffusion_head = DiffusionNoisePredictionNet(
             diffusion_step_embed_dim=self.diffusion_embed_dim,
-            # 【关键修改2】：因为是 Attention 内部融合，所以传给下个网络的特征维度不变，依然是 num_obs_dim
-            observation_embed_dim=self.num_obs_dim,
+            observation_embed_dim=self.num_obs_dim + self.lang_proj_dim,
             sample_embed_dim=self.diffusion_embed_dim,
             sample_dim=self.output_dim,
             attention=self.attention,
@@ -435,23 +423,11 @@ class GraspGenGenerator(nn.Module):
                     )
                 # data["text"]: list of str, length = num_objects_in_batch
                 text_feat = self.text_encoder(data["text"])          # [N_obj, clip_dim]
-                text_feat = self.text_projection(text_feat)          # [N_obj, num_obs_dim]
-                text_feat = text_feat[mask_batch]                    # [batch_size, num_obs_dim]
-                
-                # ==========================================================
-                # 【架构创新点】：Cross-Attention 物理映射与特征对齐
-                # ==========================================================
-                # nn.MultiheadAttention (batch_first=True) 需要的 shape 为 [batch, seq_len, embed_dim]
-                # 因为目前是全局特征向量，相当于序列长度 seq_len = 1，通过 unsqueeze 增加维度
-                Q = object_embedding.unsqueeze(1) # 3D 几何特征作为 Query [batch_size, 1, num_obs_dim]
-                K = text_feat.unsqueeze(1)        # 文本语义特征作为 Key [batch_size, 1, num_obs_dim]
-                V = text_feat.unsqueeze(1)        # 文本语义特征作为 Value [batch_size, 1, num_obs_dim]
-                
-                # 计算交叉注意力
-                attn_out, _ = self.cross_attn(query=Q, key=K, value=V) # 输出形状: [batch_size, 1, num_obs_dim]
-                
-                # 残差连接 (Residual Connection) + 层归一化 (LayerNorm)
-                object_embedding = self.attn_layer_norm(object_embedding + attn_out.squeeze(1))
+                text_feat = self.text_projection(text_feat)          # [N_obj, lang_proj_dim]
+                text_feat = text_feat[mask_batch]                    # [batch_size, lang_proj_dim]
+                object_embedding = torch.cat(
+                    [object_embedding, text_feat], dim=-1
+                )                                                    # [batch_size, num_obs_dim + lang_proj_dim]
             # ---------------------------------------------------------------------
         else:
             raise NotImplementedError(f"Pose repr {self.pose_repr} not implemented!")
@@ -646,20 +622,11 @@ class GraspGenGenerator(nn.Module):
                             "missing from the data dictionary."
                         )
                     text_feat = self.text_encoder(data["text"])      # [N_obj, clip_dim]
-                    text_feat = self.text_projection(text_feat)      # [N_obj, num_obs_dim]
-                    text_feat = text_feat[mask_batch]                # [batch_size, num_obs_dim]
-                    
-                    # ==========================================================
-                    # 【架构创新点】：Cross-Attention 推理
-                    # ==========================================================
-                    Q = object_embedding.unsqueeze(1)
-                    K = text_feat.unsqueeze(1)
-                    V = text_feat.unsqueeze(1)
-                    
-                    attn_out, _ = self.cross_attn(query=Q, key=K, value=V)
-                    
-                    # 残差连接 + 层归一化
-                    object_embedding = self.attn_layer_norm(object_embedding + attn_out.squeeze(1))
+                    text_feat = self.text_projection(text_feat)      # [N_obj, lang_proj_dim]
+                    text_feat = text_feat[mask_batch]                # [batch_size, lang_proj_dim]
+                    object_embedding = torch.cat(
+                        [object_embedding, text_feat], dim=-1
+                    )                                                # [batch_size, num_obs_dim + lang_proj_dim]
                 # -----------------------------------------------------------------
 
             if self.compositional_schedular:
