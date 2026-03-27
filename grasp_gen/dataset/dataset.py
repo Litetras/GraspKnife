@@ -460,7 +460,7 @@ class PickDataset(Dataset):
             logger.info("No filtering; All datapoints are used")
 
         self.overfitting_mode = False
-        if len(self.scenes) <= 100:  # If the dataset is very small, we are likely in overfitting/debugging mode. In that case, we can repeat the scenes multiple times to allow for more iterations per epoch, which can help with convergence and debugging.
+        if len(self.scenes) <= 40:  # If the dataset is very small, we are likely in overfitting/debugging mode. In that case, we can repeat the scenes multiple times to allow for more iterations per epoch, which can help with convergence and debugging.
             #multiplier = 100 if self.split == "train" else 10
             multiplier = 50 if self.split == "train" else 10
             #multiplier = 10 if self.split == "train" else 2#样本太少学不会

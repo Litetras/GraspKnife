@@ -101,6 +101,6 @@ def batch_align_knives(input_dir, output_dir):
     print(f"批处理完成！成功统一处理 {success_count}/{len(obj_files)} 个模型。")
 
 if __name__ == "__main__":
-    INPUT_DIR = "/home/zyp/Desktop/my_kitchen_knives"
-    OUTPUT_DIR = "/home/zyp/Desktop/my_kitchen_knives_aligned"
+    INPUT_DIR = "/home/zyp/Desktop/knives_cleaned"
+    OUTPUT_DIR = "/home/zyp/Desktop/knives_cleaned_aligned"
     batch_align_knives(INPUT_DIR, OUTPUT_DIR)

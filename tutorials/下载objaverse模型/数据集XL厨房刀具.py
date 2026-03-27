@@ -9,7 +9,8 @@ annotations = objaverse.load_annotations()
 # ==========================================
 
 # 【第一层：核心必选】没有这些词的直接pass（先锁死「刀具」这个大前提，彻底排除非刀具模型）
-must_have_keywords = {'knife', 'knives', 'blade'}
+must_have_keywords = {'knife', 'knives', 'blade' , 'knives', 'cleaver', 
+    'dagger', 'machete', 'scalpel', 'karambit', 'kunai'}
 
 # 【第二层：厨房白名单】必须包含至少一个，确保是「厨房用」，而非其他用途的刀
 kitchen_keywords = {

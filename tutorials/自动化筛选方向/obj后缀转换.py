@@ -2,8 +2,8 @@ import shutil
 from pathlib import Path
 
 # 定义源目录和目标目录
-SOURCE_DIR = Path("/home/zyp/GraspDataGen/objects")
-TARGET_DIR = Path("/home/zyp/Desktop/zyp_dataset2/tutorial/tutorial_object_dataset")
+SOURCE_DIR = Path("/home/zyp/Desktop/knives_cleaned_aligned")
+TARGET_DIR = Path("/home/zyp/Desktop/zyp_dataset6/tutorial/tutorial_object_dataset")
 
 # 确保目标目录存在，如果不存在会自动创建
 TARGET_DIR.mkdir(parents=True, exist_ok=True)
@@ -13,9 +13,9 @@ suffixes = ["_up", "_down", "_top", "_low"]
 
 print("开始复制并重命名 obj 文件...")
 
-# 遍历 knife1 到 knife5
-for i in range(1, 6):
-    base_name = f"knife{i}"
+# 遍历 kitchen_knife_1 到 kitchen_knife_135
+for i in range(1, 136):
+    base_name = f"kitchen_knife_{i}"
     source_obj_path = SOURCE_DIR / f"{base_name}.obj"
     
     # 检查源文件是否存在

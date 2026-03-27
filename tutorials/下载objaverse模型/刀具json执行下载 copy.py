@@ -3,13 +3,24 @@ import trimesh
 import time
 import objaverse
 import json
+import random  # 【新增】引入随机数库
 
 # ==========================================
-# 配置区域 (请根据需要修改路径)
+# 代理设置
 # ==========================================
-UID_LIST_FILE = "all_knife_no_sword_uids.json"  # 刚才筛选好的UID列表
-OUTPUT_DIR = "/home/zyp/Desktop/knives"  # 最终OBJ存放路径
-TARGET_SCALE = 0.2  # 将模型最长边缩放到 0.2米 (20厘米)
+os.environ["http_proxy"] = "http://127.0.0.1:20171"
+os.environ["https_proxy"] = "http://127.0.0.1:20171"
+
+# ==========================================
+# 配置区域
+# ==========================================
+UID_LIST_FILE = "kitchen_knife_pure_uids.json"
+OUTPUT_DIR = "/home/zyp/Desktop/knives"
+
+# 【修改】定义你希望模型最终随机分布的尺寸区间 (单位：米)
+# 比如：让所有的刀在 15cm(水果刀) 到 40cm(大主厨刀) 之间随机生成
+TARGET_MIN_SCALE = 0.15  
+TARGET_MAX_SCALE = 0.40  
 
 # ==========================================
 # 1. 加载筛选好的 UID 列表
@@ -22,13 +33,11 @@ with open(UID_LIST_FILE, 'r', encoding='utf-8') as f:
 
 print(f"已加载 {len(knife_uids)} 个厨房刀具 UID。")
 
-# 可选：如果你只想先测试下载前10个，取消下面这行的注释
-# knife_uids = knife_uids[:10]
-
 # ==========================================
 # 2. 带有重试机制的下载
 # ==========================================
-print("开始下载模型...")
+# (Objaverse 会自动检查本地缓存，之前下载过的会瞬间跳过，不会重复消耗流量)
+print("检查并加载模型缓存...")
 MAX_RETRIES = 3
 objects = {}
 
@@ -36,34 +45,35 @@ for attempt in range(MAX_RETRIES):
     try:
         objects = objaverse.load_objects(
             uids=knife_uids,
-            download_processes=1  # 单进程更稳定，避免网络死锁
+            download_processes=8
         )
-        print("下载完成！")
+        print("模型加载完成！")
         break
     except Exception as e:
-        print(f"下载尝试 {attempt + 1} 失败: {e}")
+        print(f"加载尝试 {attempt + 1} 失败: {e}")
         if attempt < MAX_RETRIES - 1:
             time.sleep(3)
         else:
             print("达到最大重试次数，请检查网络。")
+            exit()
 
 if not objects:
-    print("没有下载到任何模型，程序退出。")
+    print("没有加载到任何模型，程序退出。")
     exit()
 
 # ==========================================
-# 3. 转换、缩放与导出 OBJ
+# 3. 转换、随机缩放与导出 OBJ
 # ==========================================
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 print(f"开始处理模型，输出目录: {OUTPUT_DIR}")
 
 count = 0
+error_count = 0
+
 for uid, glb_path in objects.items():
     try:
-        # 读取 GLB 文件
         scene_or_mesh = trimesh.load(glb_path, force='mesh')
 
-        # 如果是场景(Scene)，合并为单个网格(Mesh)
         if isinstance(scene_or_mesh, trimesh.Scene):
             if len(scene_or_mesh.geometry) == 0:
                 continue
@@ -71,15 +81,26 @@ for uid, glb_path in objects.items():
         else:
             mesh = scene_or_mesh
 
-        # --- 核心预处理 (非常重要，适合机器人抓取) ---
+        # --- 核心预处理：居中与随机缩放 ---
+        
         # 1. 居中：将模型质心移到坐标原点 (0,0,0)
         mesh.apply_translation(-mesh.centroid)
         
-        # 2. 缩放：统一缩放到指定大小
-        max_length = mesh.extents.max()
-        if max_length > 0:
-            scale_factor = TARGET_SCALE / max_length
+        # 2. 获取当前模型包围盒的最大边长
+        current_max_length = mesh.extents.max()
+        
+        # 3. 【核心逻辑】随机生成目标尺寸并缩放
+        if current_max_length > 0:
+            # 在 0.15m 到 0.40m 之间随机抽取一个长度
+            random_target_scale = random.uniform(TARGET_MIN_SCALE, TARGET_MAX_SCALE)
+            # 计算缩放比例
+            scale_factor = random_target_scale / current_max_length
+            # 执行缩放
             mesh.apply_scale(scale_factor)
+        else:
+            print(f"  -> 跳过 UID {uid[:8]}: 模型没有任何体积 (长度为0)")
+            error_count += 1
+            continue
 
         # 导出文件
         obj_filename = f"kitchen_knife_{uid[:8]}.obj"
@@ -97,10 +118,16 @@ for uid, glb_path in objects.items():
                 else:
                     f.write(line)
 
-        print(f"[{count+1}/{len(objects)}] 成功处理: {obj_filename}")
+        print(f"[{count+1}] 成功处理: {obj_filename} (已随机缩放至: {random_target_scale:.3f} 米)")
         count += 1
 
     except Exception as e:
         print(f"处理 UID {uid} 时出错: {e}")
+        error_count += 1
 
-print(f"\n全部处理完毕！共生成 {count} 个模型，保存在: {OUTPUT_DIR}")
+print("="*60)
+print("处理汇报：")
+print(f"  - 成功导出: {count} 把随机尺寸的厨刀")
+print(f"  - 异常损坏: {error_count} 个模型")
+print(f"最终模型保存在: {OUTPUT_DIR}")
+print("="*60)

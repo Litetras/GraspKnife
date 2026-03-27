@@ -51,7 +51,7 @@ def parse_args():
     parser.add_argument(
         "--gripper_config",
         type=str,
-        default="/home/zyp/Desktop/zyp_dataset2/tutorial/models/tutorial_model_config.yaml",
+        default="/home/zyp/Desktop/zyp_dataset6/tutorial/models/tutorial_model_config.yaml",
         help="夹爪配置YAML文件的路径"
     )
     parser.add_argument(

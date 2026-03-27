@@ -75,7 +75,7 @@ def convert_isaac_to_graspgen(yaml_file_path):
 
 if __name__ == "__main__":
     # 定义基础数据集目录
-    BASE_DIR = Path("/home/zyp/Desktop/zyp_dataset2/tutorial/tutorial_grasp_dataset")
+    BASE_DIR = Path("/home/zyp/Desktop/zyp_dataset6/tutorial/tutorial_grasp_dataset")
     
     # 定义重命名映射规则
     rename_mapping = {
@@ -85,10 +85,10 @@ if __name__ == "__main__":
     
     print("开始批量转换与复制任务...")
     
-    # 批量遍历 knife1 到 knife5，以及 up 和 down 两种状态
-    for i in range(1, 6):
+    # 批量遍历 kitchen_knife_1 到 kitchen_knife_135，以及 up 和 down 两种状态
+    for i in range(1, 136):
         for orientation in ["up", "down"]:
-            yaml_filename = f"knife{i}_{orientation}.yaml"
+            yaml_filename = f"kitchen_knife_{i}_{orientation}.yaml"
             target_yaml_path = BASE_DIR / yaml_filename
             
             # 1. 执行转换，获取生成的原 JSON 路径
@@ -97,8 +97,8 @@ if __name__ == "__main__":
             # 2. 如果转换成功，执行复制并重命名
             if generated_json_path and generated_json_path.exists():
                 new_orientation = rename_mapping[orientation]
-                # 拼接新的文件名，例如：knife1_top_grasps.json
-                new_filename = f"knife{i}_{new_orientation}_grasps.json"
+                # 拼接新的文件名，例如：kitchen_knife_1_top_grasps.json
+                new_filename = f"kitchen_knife_{i}_{new_orientation}_grasps.json"
                 new_json_path = generated_json_path.parent / new_filename
                 
                 # 复制文件
