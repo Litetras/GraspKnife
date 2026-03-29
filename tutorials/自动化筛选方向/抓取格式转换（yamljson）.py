@@ -74,8 +74,8 @@ def convert_isaac_to_graspgen(yaml_file_path):
     return output_json_path
 
 if __name__ == "__main__":
-    # 定义基础数据集目录
-    BASE_DIR = Path("/home/zyp/Desktop/zyp_dataset6/tutorial/tutorial_grasp_dataset")
+    # 定义基础数据集目录##########################################################
+    BASE_DIR = Path("/home/zyp/Desktop/zyp_dataset7/tutorial/tutorial_grasp_dataset")
     
     # 定义重命名映射规则
     rename_mapping = {

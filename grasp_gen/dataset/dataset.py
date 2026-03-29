@@ -460,10 +460,10 @@ class PickDataset(Dataset):
             logger.info("No filtering; All datapoints are used")
 
         self.overfitting_mode = False
-        if len(self.scenes) <= 40:  # If the dataset is very small, we are likely in overfitting/debugging mode. In that case, we can repeat the scenes multiple times to allow for more iterations per epoch, which can help with convergence and debugging.
+        if len(self.scenes) <= 300:  # If the dataset is very small, we are likely in overfitting/debugging mode. In that case, we can repeat the scenes multiple times to allow for more iterations per epoch, which can help with convergence and debugging.
             #multiplier = 100 if self.split == "train" else 10
-            multiplier = 50 if self.split == "train" else 10
-            #multiplier = 10 if self.split == "train" else 2#样本太少学不会
+            #multiplier = 50 if self.split == "train" else 10
+            multiplier = 5 if self.split == "train" else 2
             if self.split != "train" and not rotation_augmentation:
                 multiplier = 1
             self.scenes = self.scenes * multiplier #self.scenes = [self.scenes[0]] * multiplier
@@ -1213,6 +1213,34 @@ class ObjectPickDataset(PickDataset):
 
         if self.rotation_augmentation:
             obj_pose = T_aug @ obj_pose
+        
+        # =====================================================================
+        # 【新增 3】：提取文本，计算跟随着物体一起旋转后的世界目标方向
+        # =====================================================================
+        obj_name = os.path.basename(self.scenes[idx]).split('.')[0]
+        if hasattr(self, 'task_texts') and obj_name in self.task_texts and "task1" in self.task_texts[obj_name]:
+            task_text = self.task_texts[obj_name]["task1"]
+        else:
+            task_text = "down" if 'down' in obj_name.lower() else "up"
+        outputs["text"] = task_text
+
+# 【极其重要】：根据预处理脚本的逻辑反推
+        # up 抓取：位置在 y > 0，夹爪从上往下抓，所以接近方向（Z轴）指向局部 -Y 
+        if task_text == "up":
+            local_task_dir = np.array([0.0, -1.0, 0.0])  
+        # down 抓取：位置在 y <= 0，夹爪从下往上抓，所以接近方向（Z轴）指向局部 +Y
+        elif task_text == "down":
+            local_task_dir = np.array([0.0, 1.0, 0.0]) 
+        else:
+            local_task_dir = np.array([0.0, -1.0, 0.0]) # 默认 up
+
+        # 将局部方向转换到当前的世界坐标系（乘以物体的绝对位姿旋转矩阵）
+        target_dir = obj_pose[:3, :3] @ local_task_dir
+        target_dir = target_dir / np.linalg.norm(target_dir)
+        # =====================================================================
+
+
+
 
         temp_object_path_dir = "/object_dataset/simplified"
         if obj_asset_path.find(temp_object_path_dir) >= 0:
@@ -1255,9 +1283,10 @@ class ObjectPickDataset(PickDataset):
                 self.discriminator_ratio,
                 scene_info,
                 self.gripper_collision_mesh,
-                negative_grasps,
+                grasps_negative=negative_grasps, # <- 这里原本是用参数名传的 negative_grasps,
                 positive_grasps_onpolicy=positive_grasps_onpolicy,
                 negative_grasps_onpolicy=negative_grasps_onpolicy,
+                target_dir=target_dir, # <=== 【新增 4】把算好的方向传进去
             )
 
             outputs.update(batch_data)
@@ -1509,6 +1538,7 @@ def load_discriminator_batch_with_stratified_sampling(
     grasps_negative: np.ndarray = None,
     positive_grasps_onpolicy: np.ndarray = None,
     negative_grasps_onpolicy: np.ndarray = None,
+    target_dir: np.ndarray = None,  # <=== 【新增 1】接收目标方向向量
 ):
 
     N = num_grasps_per_batch
@@ -1674,6 +1704,26 @@ def load_discriminator_batch_with_stratified_sampling(
             torch.zeros([num_total_actual - num_total_pos, 1]),
         ]
     ).float()
+
+    # ===================================================================
+    # 【新增 2】：基于任务导向的 30 度角限制进行 Label 重写
+    # ===================================================================
+    if target_dir is not None:
+        import math
+        # 提取当前 Batch 所有 grasps 的接近方向 (Z轴)
+        approach_dirs = grasps[:, :3, 2].numpy() if torch.is_tensor(grasps) else grasps[:, :3, 2]
+        
+        # 计算所有抓取方向与目标方向的余弦相似度
+        cos_sims = np.dot(approach_dirs, target_dir)
+        
+        # 判断夹角是否 <= 30 度
+        angle_threshold = math.cos(30.0 / 180.0 * math.pi)
+        valid_angle_mask = cos_sims >= angle_threshold
+        
+        # 翻转标签：方向不对的，直接乘 0 变成负样本 (0)
+        valid_angle_mask_tensor = torch.from_numpy(valid_angle_mask).float().unsqueeze(1)
+        labels = labels * valid_angle_mask_tensor
+    # ===================================================================
 
     assert grasps.shape[0] == num_total_actual
     assert labels.shape[0] == num_total_actual
