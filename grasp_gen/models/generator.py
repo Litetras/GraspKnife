@@ -494,17 +494,23 @@ class GraspGenGenerator(nn.Module):
             
             # 3. 提取接近方向 (Approach Direction)，即夹爪坐标系的 Z 轴（索引为2）
             pred_approach_dir = pred_x0_mat[..., :3, 2] # Shape: [Batch, 3]
-            gt_approach_dir = grasps_gt_mat[..., :3, 2] # Shape: [Batch, 3]
+            # ====== 修改：获取真实的文本目标方向 ======
+            target_dir = data["target_dir"].to(device) # Shape: [N_obj, 3]
+            target_dir = target_dir[mask_batch]        # 广播到 Shape: [Batch, 3]
+            #gt_approach_dir = grasps_gt_mat[..., :3, 2] # Shape: [Batch, 3]
             
             # 4. 计算 SoFar 风格的余弦相似度
-            cos_sim = torch.nn.functional.cosine_similarity(pred_approach_dir, gt_approach_dir, dim=-1)
-            
+            #cos_sim = torch.nn.functional.cosine_similarity(pred_approach_dir, gt_approach_dir, dim=-1)
+            # 使用 target_dir 而不是 gt_approach_dir！
+            cos_sim = torch.nn.functional.cosine_similarity(pred_approach_dir, target_dir, dim=-1)
             # 5. 【高阶技巧】基于 SNR 的动态权重 (SNR-based Weighting)，防止早期梯度爆炸
             dynamic_weight = alpha_prod_t.squeeze(-1) 
             direction_loss = (1.0 - cos_sim) * dynamic_weight
             
             # 将方向 Loss 加入总 Loss 中，基础权重设为 1.0 即可
-            losses["direction_loss"] = (1.0, direction_loss.mean())
+            #losses["direction_loss"] = (1.0, direction_loss.mean())
+            # 建议把方向 Loss 的权重加大（如 5.0），强迫生成器听从文本
+            losses["direction_loss"] = (5.0, direction_loss.mean())
             
             # 记录准确率到 Tensorboard
             with torch.no_grad():

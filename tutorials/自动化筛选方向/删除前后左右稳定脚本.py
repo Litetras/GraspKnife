@@ -84,7 +84,7 @@ def process_all(input_dir, out_dir_up, out_dir_down):
                                  z_threshold=0.02, 
                                  y_threshold=0.02, 
                                  x_limit=0.15,
-                                 max_tilt_angle=15.0) # 已修改为正负15度
+                                 max_tilt_angle=10.0) # 已修改为正负10度
         
     print(f"\nAll done! \nUp grasps saved to: {out_dir_up}\nDown grasps saved to: {out_dir_down}")
 

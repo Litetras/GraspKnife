@@ -1225,18 +1225,20 @@ class ObjectPickDataset(PickDataset):
         outputs["text"] = task_text
 
 # 【极其重要】：根据预处理脚本的逻辑反推
-        # up 抓取：位置在 y > 0，夹爪从上往下抓，所以接近方向（Z轴）指向局部 -Y 
-        if task_text == "up":
+        # up/top 抓取：夹爪从上往下抓，接近方向（Z轴）指向局部 -Y 
+        if task_text in ["up", "top"]:
             local_task_dir = np.array([0.0, -1.0, 0.0])  
-        # down 抓取：位置在 y <= 0，夹爪从下往上抓，所以接近方向（Z轴）指向局部 +Y
-        elif task_text == "down":
+        # down/low 抓取：夹爪从下往上抓，接近方向（Z轴）指向局部 +Y
+        elif task_text in ["down", "low"]:
             local_task_dir = np.array([0.0, 1.0, 0.0]) 
         else:
-            local_task_dir = np.array([0.0, -1.0, 0.0]) # 默认 up
+            local_task_dir = np.array([0.0, -1.0, 0.0]) # 默认
 
         # 将局部方向转换到当前的世界坐标系（乘以物体的绝对位姿旋转矩阵）
         target_dir = obj_pose[:3, :3] @ local_task_dir
         target_dir = target_dir / np.linalg.norm(target_dir)
+        # ====== 新增下面这行 ======
+        outputs["target_dir"] = torch.from_numpy(target_dir).float()
         # =====================================================================
 
 
@@ -1756,6 +1758,7 @@ def collate_batch_keys(batch):
             "ee_pose",
             "placement_masks",
             "placement_region",
+            "target_dir",  # <==== 新增在这里
         ]:
             batch[key] = torch.stack(batch[key])
         if key in ["contact_dirs", "approach_dirs", "offsets"]:
