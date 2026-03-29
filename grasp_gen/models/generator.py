@@ -424,6 +424,15 @@ class GraspGenGenerator(nn.Module):
                 # data["text"]: list of str, length = num_objects_in_batch
                 text_feat = self.text_encoder(data["text"])          # [N_obj, clip_dim]
                 text_feat = self.text_projection(text_feat)          # [N_obj, lang_proj_dim]
+                
+                # ====== 必须新增：训练时的文本特征 Dropout ======
+                if self.training:
+                    # 15% 的概率把文本特征全设为 0，强迫模型不能只依赖几何特征
+                    drop_mask = torch.rand(text_feat.shape[0], 1, device=device) > 0.15
+                    text_feat = text_feat * drop_mask.float()
+                # ============================================
+                
+                
                 text_feat = text_feat[mask_batch]                    # [batch_size, lang_proj_dim]
                 object_embedding = torch.cat(
                     [object_embedding, text_feat], dim=-1
@@ -508,9 +517,9 @@ class GraspGenGenerator(nn.Module):
             direction_loss = (1.0 - cos_sim) * dynamic_weight
             
             # 将方向 Loss 加入总 Loss 中，基础权重设为 1.0 即可
-            #losses["direction_loss"] = (1.0, direction_loss.mean())
+            losses["direction_loss"] = (1.0, direction_loss.mean())
             # 建议把方向 Loss 的权重加大（如 5.0），强迫生成器听从文本
-            losses["direction_loss"] = (5.0, direction_loss.mean())
+
             
             # 记录准确率到 Tensorboard
             with torch.no_grad():

@@ -314,6 +314,15 @@ class GraspGenDiscriminator(nn.Module):
                 raise ValueError("Discriminator: Language conditioning is enabled but 'text' key is missing.")
             text_feat = self.text_encoder(data["text"])
             text_feat = self.text_projection(text_feat)
+
+            # ====== 【核心修复】：判别器训练时的文本特征 Dropout ======
+            if self.training:
+                # 以 15% 的概率将文本特征清零 (Zero-out)
+                # 迫使判别器不能只依赖几何特征，必须学会结合文本特征来打分
+                drop_mask = torch.rand(text_feat.shape[0], 1, device=device) > 0.15
+                text_feat = text_feat * drop_mask.float()
+            # ==========================================================
+            
             text_feat = text_feat[mask_batch]
             total_embedding = torch.cat([total_embedding, text_feat], dim=-1)
         # =================================================
