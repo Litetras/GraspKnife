@@ -3,7 +3,7 @@
 # Fixed parameters
 export NGPU=1
 export NWORKER=4
-export NEPOCH=1500 #5000     #单个物体运行可能需
+export NEPOCH=500 #这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
 export BATCH=8
 export PRINT_FREQ=10
 export PLOT_FREQ=10
@@ -20,7 +20,7 @@ export NUM_POINTS=2048
 export NOISE_SCALE=1.0
 export NAME="meshandpc"
 export P_PC=0.50
-export RED=100 #7  尝试次数： 把它改成 100，程序就会尝试 100 次去给刀具寻找一个合适的“拍摄角度”。只要这 100 次里成功了几次，就不会报错了
+export RED=14 #7  尝试次数： 把它改成 100，程序就会尝试 100 次去给刀具寻找一个合适的“拍摄角度”。只要这 100 次里成功了几次，就不会报错了
 export GRIPPER_NAME="franka_panda" ##
 export OBJECT_DATASET_DIR="/results/tutorial/tutorial_object_dataset"
 export GRASP_DIR="/results/tutorial/tutorial_grasp_dataset"
