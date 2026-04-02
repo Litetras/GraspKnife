@@ -5,7 +5,7 @@ from pathlib import Path
 SOURCE_DIR = Path("/home/zyp/Desktop/knives_cleaned_aligned")
 TARGET_DIR = Path("/home/zyp/Desktop/zyp_dataset7/tutorial/tutorial_object_dataset")
 
-# 确保目标目录存在，如果不存在会自动创建
+# 确保目标目录存在，如果不存在会自动创建#
 TARGET_DIR.mkdir(parents=True, exist_ok=True)
 
 # 定义要添加的四个后缀
