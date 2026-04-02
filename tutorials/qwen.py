@@ -8,4 +8,4 @@ res = ollama.chat(
         'images': ['/home/zyp/Pictures/Screenshots/Screenshot from 2026-03-26 22-14-14.png']
     }]
 )
-print(res['message']['content'])#
+print(res['message']['content'])
