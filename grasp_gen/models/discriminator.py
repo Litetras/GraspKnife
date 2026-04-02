@@ -363,10 +363,36 @@ class GraspGenDiscriminator(nn.Module):
                     stats[key] = torch.tensor(val).to(device)
 
                     mask = grasp_ids == grasp_id
-                    # stats[f"ap_{grasp_name}"] = average_precision_score(labels[mask], score[mask])
-                    key = f"loss_{grasp_name}"
-                    val = bce_loss[mask].detach().cpu().numpy().mean()
-                    stats[key] = torch.tensor(val).to(device)
+
+                    # # stats[f"ap_{grasp_name}"] = average_precision_score(labels[mask], score[mask])
+                    # key = f"loss_{grasp_name}"
+                    # val = bce_loss[mask].detach().cpu().numpy().mean()
+                    # stats[key] = torch.tensor(val).to(device)# 确保当前 batch 里面有这个类型的抓取
+                    if mask.sum() > 0:
+                        key = f"loss_{grasp_name}"
+                        val = bce_loss[mask].detach().cpu().numpy().mean()
+                        stats[key] = torch.tensor(val).to(device)
+
+                        # ================= 新增：语义条件准确率监控 =================
+                        scores_for_this_type = score[mask]
+                        
+                        # 记录各类别的平均置信度分数（看看它有多自信）
+                        stats[f"score_{grasp_name}"] = torch.tensor(scores_for_this_type.mean()).to(device)
+                        
+                        # 记录各类别的分类准确率 (%)
+                        if "pos" in grasp_name:
+                            # 对于正样本 (pos_true)，希望模型打分 > 0.5
+                            acc = (scores_for_this_type > 0.5).mean() * 100.0
+                        else:
+                            # 对于负样本 (neg_true 等)，希望模型打分 < 0.5
+                            acc = (scores_for_this_type < 0.5).mean() * 100.0
+                        
+                        stats[f"acc_{grasp_name}"] = torch.tensor(acc).to(device)
+                        # ============================================================
+
+
+
+
 
         return outputs, losses, stats
 

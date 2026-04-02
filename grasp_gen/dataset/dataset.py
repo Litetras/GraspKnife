@@ -1249,6 +1249,93 @@ class ObjectPickDataset(PickDataset):
                 else None
             )
 
+
+
+            current_scene = self.scenes[idx] 
+            #print(f"====== 【DEBUG】真实的场景名: '{current_scene}' ======")
+
+# ================= 新增：跨文件主动读取反方向数据作为语义负样本 =================
+            # 1. 自动推断反方向的 key（根据你的命名规则，将 up 和 down 互换）
+            opposite_key = None
+            if "_up" in current_scene:
+                opposite_key = current_scene.replace("_up", "_down")
+            elif "_top" in current_scene:
+                opposite_key = current_scene.replace("_top", "_low")
+            elif "_down" in current_scene:
+                opposite_key = current_scene.replace("_down", "_up")
+            elif "_low" in current_scene:
+                opposite_key = current_scene.replace("_low", "_top")
+
+
+            # 2. 如果成功推断出反方向文件名，则去加载它的数据
+            # if opposite_key is not None:
+            #     try:
+            #         # 调用本文件头部的 load_object_grasp_data 函数，读取反方向数据
+            #         _, opp_grasp_data = load_object_grasp_data(
+            #             opposite_key,
+            #             self.object_root_dir,
+            #             self.grasp_root_dir,
+            #             self.dataset_version,
+            #             load_discriminator_dataset=False, # 我们只需要它里的正样本作为我们的负样本
+            #             gripper_info=self.gripper_info,
+            #             onpolicy_dataset_dir=None,
+            #             onpolicy_dataset_h5_path=None,
+            #             onpolicy_json_path=None,
+            #             onpolicy_data_found=False,
+            #             grasp_dataset_reader=self.grasp_dataset_reader,
+            #         )
+                    
+            # 2. 如果成功推断出反方向文件名，则去加载它的数据
+            if opposite_key is not None:
+                try:
+                    opp_grasp_data = None
+                    # ================= 性能优化：优先从内存 Cache 极速读取 =================
+                    if self.preload_dataset and opposite_key in self.cache:
+                        # self.cache 里存的是 (object_grasp_data, rendering_output) 元组
+                        # 我们只需要提取第一个元素
+                        opp_grasp_data = self.cache[opposite_key][0]
+                    else:
+                        # 如果没开 cache 或者 cache 里刚好没有，再去老老实实读硬盘
+                        _, opp_grasp_data = load_object_grasp_data(
+                            opposite_key,
+                            self.object_root_dir,
+                            self.grasp_root_dir,
+                            self.dataset_version,
+                            load_discriminator_dataset=False, # 我们只需要它里的正样本作为我们的负样本
+                            gripper_info=self.gripper_info,
+                            onpolicy_dataset_dir=None,
+                            onpolicy_dataset_h5_path=None,
+                            onpolicy_json_path=None,
+                            onpolicy_data_found=False,
+                            grasp_dataset_reader=self.grasp_dataset_reader,
+                        )
+                    # =========================================================================
+                    if opp_grasp_data is not None and opp_grasp_data.positive_grasps is not None:
+                        opp_grasps = opp_grasp_data.positive_grasps.copy()
+                        if len(opp_grasps) > 0:
+                            # 3. 对齐坐标系：这一步极其重要！必须应用和当前点云一模一样的变换！
+                            # 变换1: 将抓取移动到当前点云的平均中心
+                            opp_grasps = np.array([T_move_to_pc_mean @ g for g in opp_grasps])
+                            
+                            # 变换2: 如果开启了旋转数据增强，应用当前的随机旋转矩阵 T_aug
+                            if self.rotation_augmentation and 'T_aug' in locals():
+                                opp_grasps = np.array([T_aug @ g for g in opp_grasps])
+                                
+                            # 4. 将反向抓取合并到当前场景的 negative_grasps 中
+                            if negative_grasps is None:
+                                negative_grasps = opp_grasps
+                            else:
+                                negative_grasps = np.vstack((negative_grasps, opp_grasps))
+                                
+                except Exception as e:
+                    logger.warning(f"[语义负样本] 无法读取反方向数据 {opposite_key}: {e}")
+            # ==============================================================================
+
+
+
+
+
+
             batch_data, scene_mesh = load_discriminator_batch_with_stratified_sampling(
                 self.num_grasps_per_object,
                 positive_grasps,
