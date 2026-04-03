@@ -3,11 +3,15 @@ import glob
 import re
 
 # ==========================================
-# 配置区域
+# 配置区域 (按需修改这两项即可通用)
 # ==========================================
-# 指向你刚才清洗后存放模型的文件夹
-WORK_DIR = "/home/zyp/Desktop/knives_cleaned_aligned"
-# 【新增】创建一个专门存放重命名后模型的输出文件夹，保护原始数据
+# 1. 指向你存放原始模型的文件夹
+WORK_DIR = "/home/zyp/Desktop/hammers_cleaned_aligned"  
+
+# 2. 设定你想要的文件前缀名称 (例如 "kitchen_knife", "claw_hammer", "cup" 等)
+PREFIX = "hammer"
+
+# 【自动生成】创建一个专门存放重命名后模型的输出文件夹，保护原始数据
 OUTPUT_DIR = os.path.join(WORK_DIR, "renamed_output")
 
 # ==========================================
@@ -19,7 +23,7 @@ if not os.path.exists(WORK_DIR):
 # 自动创建输出文件夹
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# 【关键修复】使用正则表达式提取文件名中的数字，进行“真正的自然数字排序”
+# 使用正则表达式提取文件名中的数字，进行“真正的自然数字排序”
 def extract_number(filename):
     numbers = re.findall(r'\d+', os.path.basename(filename))
     return int(numbers[-1]) if numbers else 0
@@ -31,12 +35,14 @@ if not obj_files:
     print(f"在 {WORK_DIR} 中没有找到 .obj 文件。")
     exit()
 
-print(f"共找到 {len(obj_files)} 个 OBJ 文件，准备开始重命名流水线...")
+print(f"共找到 {len(obj_files)} 个 OBJ 文件，准备开始以前缀 '{PREFIX}' 执行重命名流水线...")
 
 for index, old_path in enumerate(obj_files, start=1):
-    new_base_name = f"kitchen_knife_{index}"
+    # 动态使用配置好的前缀进行命名
+    new_base_name = f"{PREFIX}_{index}"
     new_filename = f"{new_base_name}.obj"
-    # 【关键修复】将新文件保存到专门的 OUTPUT_DIR，绝不覆盖原文件
+    
+    # 将新文件保存到专门的 OUTPUT_DIR，绝不覆盖原文件
     new_path = os.path.join(OUTPUT_DIR, new_filename)
     
     try:
@@ -51,8 +57,6 @@ for index, old_path in enumerate(obj_files, start=1):
                     f.write(f"o {new_base_name}\n")
                 else:
                     f.write(line)
-        
-        # 注意：这里我们不再执行 os.remove(old_path)，保留原始数据以防万一！
         
         print(f"[{index}/{len(obj_files)}] 转换成功: {os.path.basename(old_path)} -> {new_filename}")
         

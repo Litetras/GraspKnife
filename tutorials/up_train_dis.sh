@@ -3,7 +3,7 @@
 # Fixed parameters
 export NGPU=1
 export NWORKER=4
-export NEPOCH=200 #这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
+export NEPOCH=600 #这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
 export BATCH=16
 export PRINT_FREQ=10
 export PLOT_FREQ=10
@@ -37,7 +37,7 @@ export CHECKPOINT="$LOG_DIR/last.pth"
 
 echo "Running Training for $GRIPPER_NAME"
 
-rm -rf $LOG_DIR
+# rm -rf $LOG_DIR  <-- 重点：一定要注释掉或者直接删掉这行！
 mkdir -p $LOG_DIR
 mkdir -p $CACHE_DIR
 

@@ -88,7 +88,7 @@ if __name__ == "__main__":
     # 批量遍历 kitchen_knife_1 到 kitchen_knife_135，以及 up 和 down 两种状态
     for i in range(1, 136):
         for orientation in ["up", "down"]:
-            yaml_filename = f"kitchen_knife_{i}_{orientation}.yaml"
+            yaml_filename = f"hammer_{i}_{orientation}.yaml"##################################################################
             target_yaml_path = BASE_DIR / yaml_filename
             
             # 1. 执行转换，获取生成的原 JSON 路径
@@ -98,7 +98,7 @@ if __name__ == "__main__":
             if generated_json_path and generated_json_path.exists():
                 new_orientation = rename_mapping[orientation]
                 # 拼接新的文件名，例如：kitchen_knife_1_top_grasps.json
-                new_filename = f"kitchen_knife_{i}_{new_orientation}_grasps.json"
+                new_filename = f"hammer_{i}_{new_orientation}_grasps.json"#################################################################
                 new_json_path = generated_json_path.parent / new_filename
                 
                 # 复制文件
