@@ -3,11 +3,11 @@
 # Fixed parameters
 export NGPU=1
 export NWORKER=4
-export NEPOCH=600 #这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
+export NEPOCH=2000 #这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
 export BATCH=16
 export PRINT_FREQ=10
 export PLOT_FREQ=10
-export SAVE_FREQ=50
+export SAVE_FREQ=500
 export DATASET_NAME="objaverse"
 export DATASET_VERSION="v2"
 export NUM_GRASPS_PER_OBJ=300 #????
