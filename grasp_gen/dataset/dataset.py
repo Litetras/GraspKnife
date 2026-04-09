@@ -1251,57 +1251,55 @@ class ObjectPickDataset(PickDataset):
 
 
 
+
+           
+
             current_scene = self.scenes[idx] 
-            #print(f"====== 【DEBUG】真实的场景名: '{current_scene}' ======")
+            
+            # ================= 新增：多区域语义负样本构建 =================
+            # 0. 剥离扩展名防雷 (把 .obj 先脱下来)
+            scene_name = current_scene
+            ext = ""
+            if scene_name.endswith('.obj') or scene_name.endswith('.glb'):
+                ext = scene_name[-4:]
+                scene_name = scene_name[:-4] # 此时变成了干净的 "hammer_1_up_head"
 
-# ================= 新增：跨文件主动读取反方向数据作为语义负样本 =================
-            # 1. 自动推断反方向的 key（根据你的命名规则，将 up 和 down 互换）
-            opposite_key = None
-            if "_up" in current_scene:
-                opposite_key = current_scene.replace("_up", "_down")
-            elif "_top" in current_scene:
-                opposite_key = current_scene.replace("_top", "_low")
-            elif "_down" in current_scene:
-                opposite_key = current_scene.replace("_down", "_up")
-            elif "_low" in current_scene:
-                opposite_key = current_scene.replace("_low", "_top")
+            # 1. 提取物体的 base_name (去除方向和部位的后缀)
+            suffixes = [
+                '_up_handle', '_up_head', '_up_blade', 
+                '_down_handle', '_down_head', '_down_blade',
+                '_top_handle', '_top_head', '_top_blade', 
+                '_low_handle', '_low_head', '_low_blade'
+            ]
+            
+            base_obj_name = scene_name
+            for suf in suffixes:
+                if scene_name.endswith(suf): # 现在判断绝对是 True！
+                    base_obj_name = scene_name[:-len(suf)] # 此时变成了纯纯的 "hammer_1"
+                    break
 
+            # 2. 拼接出正确的对应文件，并把 .obj 穿回去！
+            # 这样生成的就是 "hammer_1_up_handle.obj"
+            opposite_keys = [base_obj_name + suf + ext for suf in suffixes if (base_obj_name + suf) != scene_name]
 
-            # 2. 如果成功推断出反方向文件名，则去加载它的数据
-            # if opposite_key is not None:
-            #     try:
-            #         # 调用本文件头部的 load_object_grasp_data 函数，读取反方向数据
-            #         _, opp_grasp_data = load_object_grasp_data(
-            #             opposite_key,
-            #             self.object_root_dir,
-            #             self.grasp_root_dir,
-            #             self.dataset_version,
-            #             load_discriminator_dataset=False, # 我们只需要它里的正样本作为我们的负样本
-            #             gripper_info=self.gripper_info,
-            #             onpolicy_dataset_dir=None,
-            #             onpolicy_dataset_h5_path=None,
-            #             onpolicy_json_path=None,
-            #             onpolicy_data_found=False,
-            #             grasp_dataset_reader=self.grasp_dataset_reader,
-            #         )
-                    
-            # 2. 如果成功推断出反方向文件名，则去加载它的数据
-            if opposite_key is not None:
+            # --- 下面是静音读取数据的代码 ---
+            import logging
+            reader_logger = logging.getLogger("grasp_gen.dataset.dataset_utils")
+
+            for opp_key in opposite_keys:
+                prev_level = reader_logger.level
+                reader_logger.setLevel(logging.WARNING) # 静音烦人的 INFO
                 try:
                     opp_grasp_data = None
-                    # ================= 性能优化：优先从内存 Cache 极速读取 =================
-                    if self.preload_dataset and opposite_key in self.cache:
-                        # self.cache 里存的是 (object_grasp_data, rendering_output) 元组
-                        # 我们只需要提取第一个元素
-                        opp_grasp_data = self.cache[opposite_key][0]
+                    if self.preload_dataset and opp_key in self.cache:
+                        opp_grasp_data = self.cache[opp_key][0]
                     else:
-                        # 如果没开 cache 或者 cache 里刚好没有，再去老老实实读硬盘
                         _, opp_grasp_data = load_object_grasp_data(
-                            opposite_key,
+                            opp_key,
                             self.object_root_dir,
                             self.grasp_root_dir,
                             self.dataset_version,
-                            load_discriminator_dataset=False, # 我们只需要它里的正样本作为我们的负样本
+                            load_discriminator_dataset=False, 
                             gripper_info=self.gripper_info,
                             onpolicy_dataset_dir=None,
                             onpolicy_dataset_h5_path=None,
@@ -1309,28 +1307,113 @@ class ObjectPickDataset(PickDataset):
                             onpolicy_data_found=False,
                             grasp_dataset_reader=self.grasp_dataset_reader,
                         )
-                    # =========================================================================
+                        
                     if opp_grasp_data is not None and opp_grasp_data.positive_grasps is not None:
                         opp_grasps = opp_grasp_data.positive_grasps.copy()
                         if len(opp_grasps) > 0:
-                            # 3. 对齐坐标系：这一步极其重要！必须应用和当前点云一模一样的变换！
-                            # 变换1: 将抓取移动到当前点云的平均中心
                             opp_grasps = np.array([T_move_to_pc_mean @ g for g in opp_grasps])
-                            
-                            # 变换2: 如果开启了旋转数据增强，应用当前的随机旋转矩阵 T_aug
                             if self.rotation_augmentation and 'T_aug' in locals():
                                 opp_grasps = np.array([T_aug @ g for g in opp_grasps])
                                 
-                            # 4. 将反向抓取合并到当前场景的 negative_grasps 中
                             if negative_grasps is None:
                                 negative_grasps = opp_grasps
                             else:
                                 negative_grasps = np.vstack((negative_grasps, opp_grasps))
                                 
                 except Exception as e:
-                    logger.warning(f"[语义负样本] 无法读取反方向数据 {opposite_key}: {e}")
+                    pass # 没找到对应部位的抓取很正常，跳过即可
+                finally:
+                    reader_logger.setLevel(prev_level) # 恢复声音
             # ==============================================================================
 
+
+
+
+
+
+
+
+#####################################################################################
+            # current_scene = self.scenes[idx] 
+            #print(f"====== 【DEBUG】真实的场景名: '{current_scene}' ======")
+
+# ================= 新增：跨文件主动读取反方向数据作为语义负样本 =================
+            # 1. 自动推断反方向的 key（根据你的命名规则，将 up 和 down 互换）
+            # opposite_key = None
+            # if "_up" in current_scene:
+            #     opposite_key = current_scene.replace("_up", "_down")
+            # elif "_top" in current_scene:
+            #     opposite_key = current_scene.replace("_top", "_low")
+            # elif "_down" in current_scene:
+            #     opposite_key = current_scene.replace("_down", "_up")
+            # elif "_low" in current_scene:
+            #     opposite_key = current_scene.replace("_low", "_top")
+
+
+            # # 2. 如果成功推断出反方向文件名，则去加载它的数据
+            # # if opposite_key is not None:
+            # #     try:
+            # #         # 调用本文件头部的 load_object_grasp_data 函数，读取反方向数据
+            # #         _, opp_grasp_data = load_object_grasp_data(
+            # #             opposite_key,
+            # #             self.object_root_dir,
+            # #             self.grasp_root_dir,
+            # #             self.dataset_version,
+            # #             load_discriminator_dataset=False, # 我们只需要它里的正样本作为我们的负样本
+            # #             gripper_info=self.gripper_info,
+            # #             onpolicy_dataset_dir=None,
+            # #             onpolicy_dataset_h5_path=None,
+            # #             onpolicy_json_path=None,
+            # #             onpolicy_data_found=False,
+            # #             grasp_dataset_reader=self.grasp_dataset_reader,
+            # #         )
+                    
+            # # 2. 如果成功推断出反方向文件名，则去加载它的数据
+            # if opposite_key is not None:
+            #     try:
+            #         opp_grasp_data = None
+            #         # ================= 性能优化：优先从内存 Cache 极速读取 =================
+            #         if self.preload_dataset and opposite_key in self.cache:
+            #             # self.cache 里存的是 (object_grasp_data, rendering_output) 元组
+            #             # 我们只需要提取第一个元素
+            #             opp_grasp_data = self.cache[opposite_key][0]
+            #         else:
+            #             # 如果没开 cache 或者 cache 里刚好没有，再去老老实实读硬盘
+            #             _, opp_grasp_data = load_object_grasp_data(
+            #                 opposite_key,
+            #                 self.object_root_dir,
+            #                 self.grasp_root_dir,
+            #                 self.dataset_version,
+            #                 load_discriminator_dataset=False, # 我们只需要它里的正样本作为我们的负样本
+            #                 gripper_info=self.gripper_info,
+            #                 onpolicy_dataset_dir=None,
+            #                 onpolicy_dataset_h5_path=None,
+            #                 onpolicy_json_path=None,
+            #                 onpolicy_data_found=False,
+            #                 grasp_dataset_reader=self.grasp_dataset_reader,
+            #             )
+            #         # =========================================================================
+            #         if opp_grasp_data is not None and opp_grasp_data.positive_grasps is not None:
+            #             opp_grasps = opp_grasp_data.positive_grasps.copy()
+            #             if len(opp_grasps) > 0:
+            #                 # 3. 对齐坐标系：这一步极其重要！必须应用和当前点云一模一样的变换！
+            #                 # 变换1: 将抓取移动到当前点云的平均中心
+            #                 opp_grasps = np.array([T_move_to_pc_mean @ g for g in opp_grasps])
+                            
+            #                 # 变换2: 如果开启了旋转数据增强，应用当前的随机旋转矩阵 T_aug
+            #                 if self.rotation_augmentation and 'T_aug' in locals():
+            #                     opp_grasps = np.array([T_aug @ g for g in opp_grasps])
+                                
+            #                 # 4. 将反向抓取合并到当前场景的 negative_grasps 中
+            #                 if negative_grasps is None:
+            #                     negative_grasps = opp_grasps
+            #                 else:
+            #                     negative_grasps = np.vstack((negative_grasps, opp_grasps))
+                                
+            #     except Exception as e:
+            #         logger.warning(f"[语义负样本] 无法读取反方向数据 {opposite_key}: {e}")
+            # # ==============================================================================
+################################################################################################################
 
 
 
@@ -1426,6 +1509,10 @@ class ObjectPickDataset(PickDataset):
                     pc,
                     self.gripper_visual_mesh,
                 )
+
+
+
+                
         if len(outputs["points"].shape) == 2:
             outputs["points"] = outputs["points"].unsqueeze(0)
 # ---- 语言条件：任务描述文本 ----##############
@@ -1436,18 +1523,29 @@ class ObjectPickDataset(PickDataset):
         if hasattr(self, 'task_texts') and obj_name in self.task_texts and "task1" in self.task_texts[obj_name]:
             # 这会正确地把 'knife_geo_up' 映射为 "up"，把 'knife_geo_down' 映射为 "down"
             outputs["text"] = self.task_texts[obj_name]["task1"]
-        else:
-            # 极限容错：万一 json 没配好，直接看文件名里有没有 up/down
-            if 'down' in obj_name.lower():
-                outputs["text"] = "down"
-            else:
-                outputs["text"] = "up"
+        # else:
+        #     # 极限容错：万一 json 没配好，直接看文件名里有没有 up/down
+        #     if 'down' in obj_name.lower():
+        #         outputs["text"] = "down"
+        #     else:
+        #         outputs["text"] = "up"
         
-        # ================= 新增：打印输出用于调试 =================
-        # 你可以保留这句 print，重启训练时看前几行输出，绝对就对齐了！
-        #print(f"\n[TEXT-DEBUG] 物体: {obj_name} | 送入模型的句子: '{outputs['text']}'\n")
-        # =========================================================
 
+        else:
+            # 动态智能解析：直接从文件名中提取部位和方向组合成自然语言
+            # 比如 "hammer_27_up_handle" 会变成 "up handle"
+            direction = "up" if "_up_" in obj_name else "down"
+            
+            if "_handle" in obj_name:
+                part = "handle"
+            elif "_head" in obj_name:
+                part = "head"
+            elif "_blade" in obj_name:
+                part = "blade"
+            else:
+                part = "" # 兼容你之前只有 up/down 的老数据
+                
+            outputs["text"] = f"{direction} {part}".strip()
         return outputs
 
 
