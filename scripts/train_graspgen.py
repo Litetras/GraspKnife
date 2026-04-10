@@ -143,7 +143,18 @@ def train_one_epoch(
         if dist.is_initialized():
             dist.barrier()
 
-        loss = sum([w * v for w, v in losses.values()])
+        # loss = sum([w * v for w, v in losses.values()])
+                # ================== 【修改：安全计算 Loss，只保留有梯度的项】 ==================
+        loss = 0.0
+        for w, v in losses.values():
+            # 只有当 v 是张量且有梯度时，才加进去
+            if isinstance(v, torch.Tensor) and v.requires_grad:
+                loss = loss + w * v
+            elif isinstance(v, torch.Tensor):
+                # 如果没有梯度，只加它的数值（不影响反向传播）
+                loss = loss + w * v.detach()
+        # ==================================================================
+
 
         if dist.is_initialized():
             dist.barrier()
@@ -376,10 +387,41 @@ def train(rank, cfg):
         model = GraspGenGenerator.from_config(cfg.diffusion).to(rank)
     elif cfg.train.model_name == "discriminator":
         model = GraspGenDiscriminator.from_config(cfg.discriminator).to(rank)
-    optimizer = build_optimizer(cfg, model)
+    
+    # optimizer = build_optimizer(cfg, model)
 
+    # total_params = sum(p.numel() for p in model.parameters())
+    # logger.info(f"Number of parameters in {cfg.train.model_name} model: {total_params}")
+
+
+
+
+
+# ==================== 【核心修改：参数过滤与优化器接管】 ====================
+    # 1. 自动过滤出所有 requires_grad=True 的可训练参数（Qwen LoRA 和 MLP）
+    trainable_params = list(filter(lambda p: p.requires_grad, model.parameters()))
+    
+    # 2. 从你的 config 中安全提取学习率 (默认优先使用 cfg.optimizer.lr)
+    lr_to_use = float(cfg.optimizer.lr) if hasattr(cfg.optimizer, 'lr') else 1e-5
+    weight_decay_to_use = float(cfg.optimizer.weight_decay) if hasattr(cfg.optimizer, 'weight_decay') else 0.05
+    
+    # 3. 抛弃原来的 build_optimizer，直接使用官方 AdamW 挂载可训练参数
+    optimizer = torch.optim.AdamW(trainable_params, lr=lr_to_use, weight_decay=weight_decay_to_use)
+    # =========================================================================
+
+    # ==================== 【增加日志：帮你安心确认冻结是否成功】 ====================
     total_params = sum(p.numel() for p in model.parameters())
-    logger.info(f"Number of parameters in {cfg.train.model_name} model: {total_params}")
+    trainable_params_count = sum(p.numel() for p in trainable_params)
+    logger.info(f"====== Model Parameter Summary ======")
+    logger.info(f"Total parameters  : {total_params:,}")
+    logger.info(f"Trainable params  : {trainable_params_count:,} (Only these will be updated!)")
+    logger.info(f"Optimizer         : AdamW (lr={lr_to_use})")
+    logger.info(f"=====================================")
+    # =========================================================================
+
+
+
+
 
     init_epoch = 0
     init_batch_idx = 0
@@ -390,8 +432,10 @@ def train(rank, cfg):
             if os.path.exists(cfg.train.checkpoint):
                 ckpt = torch.load(cfg.train.checkpoint, map_location="cpu")
                 init_epoch = ckpt["epoch"]
-                model.load_state_dict(ckpt["model"])
-                optimizer.load_state_dict(ckpt["optimizer"])
+                model.load_state_dict(ckpt["model"], strict=False)##############################
+                # 2. 注释掉或删掉加载 optimizer 的代码！
+                # 因为我们的 trainable_params 已经彻底换了，旧的 optimizer 不能用了
+                #optimizer.load_state_dict(ckpt["optimizer"])
                 logger.info(f"Loading from checkpoint {cfg.train.checkpoint}")
                 init_batch_idx = ckpt["batch_idx"] if "batch_idx" in ckpt else 0
             else:
@@ -418,8 +462,9 @@ def train(rank, cfg):
 
         ckpt = torch.load(ckpt_file, map_location="cpu")
         init_epoch = ckpt["epoch"]
-        model.load_state_dict(ckpt["model"])
-        optimizer.load_state_dict(ckpt["optimizer"])
+        model.load_state_dict(ckpt["model"], strict=False)  ##############################
+        #optimizer.load_state_dict(ckpt["optimizer"])
+        #注释掉或删掉加载 optimizer 的代码！
         logger.info(f"Loading from checkpoint {ckpt_file}")
         init_batch_idx = ckpt["batch_idx"] if "batch_idx" in ckpt else 0
 

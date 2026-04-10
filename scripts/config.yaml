@@ -1,7 +1,7 @@
 data:
     root_dir: ''
     cache_dir: '/tmp/graspgen_train_cache/'
-    tasks: ['task1'] #无效的'task1' #######因为 dataset.py 直接无脑读取 task_texts.json 里的 "task1" outputs["text"] = self.task_texts[obj_name]["task1"]
+    tasks: ['task1'] #无效的'task1'因为 dataset.py 直接无脑读取 task_texts.json 里的 "task1" outputs["text"] = self.task_texts[obj_name]["task1"]
     num_points: 16384
     num_object_points: 1024
     cam_coord: False

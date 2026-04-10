@@ -190,18 +190,54 @@ class GraspGenGenerator(nn.Module):
         else:
             raise NotImplementedError()
 
-        # ---- Language conditioning modules ----------------------------------------
+
+
+######################################QWEN##########################
+    # ---- Language conditioning (Qwen 影子教师模式) ---------------------------
         if self.use_language_conditioning:
-            self.text_encoder = TextEncoder(clip_backbone)
-            # Learnable linear projection from CLIP dim → lang_proj_dim
-            self.text_projection = nn.Linear(
-                self.text_encoder.embed_dim, lang_proj_dim
+            # ====================================================================
+            # 【终极控制开关】：
+            # 第一阶段 (特征对齐)：设为 True (冻结DiT，Qwen只学特征)
+            # 第二阶段 (端到端微调)：设为 False (解冻DiT，Qwen接管控制)
+            self.DISTILL_PHASE =  False #True  ###########################
+            # ====================================================================
+
+            # 1. 老教师：保留原来的 CLIP
+            from grasp_gen.models.clip_text_encoder import TextEncoder
+            self.clip_text_encoder = TextEncoder(clip_backbone)
+            self.clip_text_projection = nn.Linear(self.clip_text_encoder.embed_dim, lang_proj_dim)
+            
+            # 永远冻结老教师
+            for p in self.clip_text_encoder.parameters(): p.requires_grad = False
+            for p in self.clip_text_projection.parameters(): p.requires_grad = False
+
+            # 2. 新学生：加载你写好的 Qwen 编码器
+            from grasp_gen.models.qwen_text_encoder import QwenTextEncoder
+            # 确保你装了 bitsandbytes (pip install bitsandbytes)，否则 3B 容易爆显存
+            self.qwen_text_encoder = QwenTextEncoder(
+                model_id= "/home/zyp/models/qwen/Qwen2___5-3B-Instruct",#"Qwen/Qwen2.5-3B-Instruct", 
+                target_dim=lang_proj_dim, 
+                use_4bit=True
             )
-            logger.info(
-                f"Language conditioning enabled: CLIP '{clip_backbone}' "
-                f"(dim={self.text_encoder.embed_dim}) -> proj dim={lang_proj_dim}"
-            )
-        # ---------------------------------------------------------------------------
+            
+            logger.info(f"Language conditioning enabled: Qwen Mode! Distill Phase: {self.DISTILL_PHASE}")
+########################################################QWEN########
+
+
+
+
+        # # ---- Language conditioning modules ----------------------------------------
+        # if self.use_language_conditioning:
+        #     self.text_encoder = TextEncoder(clip_backbone)
+        #     # Learnable linear projection from CLIP dim → lang_proj_dim
+        #     self.text_projection = nn.Linear(
+        #         self.text_encoder.embed_dim, lang_proj_dim
+        #     )
+        #     logger.info(
+        #         f"Language conditioning enabled: CLIP '{clip_backbone}' "
+        #         f"(dim={self.text_encoder.embed_dim}) -> proj dim={lang_proj_dim}"
+        #     )
+        # # ---------------------------------------------------------------------------
 
         self.diffusion_head = DiffusionNoisePredictionNet(
             diffusion_step_embed_dim=self.diffusion_embed_dim,
@@ -263,6 +299,18 @@ class GraspGenGenerator(nn.Module):
                 logger.info(
                     f"Object encoder checkpoints not found at location {self.checkpoint_object_encoder_pretrained}"
                 )
+
+
+#####################################QWEN
+# 如果是蒸馏阶段，强制冻结 DiT 网络和点云提取网络，只准 Qwen 的 MLP 和 LoRA 学习
+        #if getattr(self, 'DISTILL_PHASE', False):#你之前加了一段判断是不是蒸馏阶段才冻结 DiT 的代码。
+#为了防止进入阶段 2 后 DiT 解冻导致你的 16G 显卡爆显存 (OOM)，我们需要去掉 if 判断，让 DiT 永远保持冻结，只允许 Qwen 学习。
+        logger.info("Distill Phase: Freezing Object Encoder and Diffusion Head...")
+        for p in self.object_encoder.parameters(): p.requires_grad = False
+        for p in self.diffusion_head.parameters(): p.requires_grad = False
+#####################################QWEN
+
+
 
     @classmethod
     def from_config(cls, cfg):
@@ -413,22 +461,60 @@ class GraspGenGenerator(nn.Module):
                 mask_batch
             ]  # Redistribute object embeddings to full batch, result is [batch_size, self.num_obs_dim]
 
-            # ---- Language conditioning -------------------------------------------
+
+#########################################################QWEN
+# ---- Language conditioning (特征对齐与切换) -------------------------
+
             if self.use_language_conditioning:
-                if "text" not in data:
-                    raise ValueError(
-                        "Language conditioning is enabled but 'text' key is missing "
-                        "from the data dictionary. Provide a list of task description "
-                        "strings (one per object) under data['text']."
-                    )
-                # data["text"]: list of str, length = num_objects_in_batch
-                text_feat = self.text_encoder(data["text"])          # [N_obj, clip_dim]
-                text_feat = self.text_projection(text_feat)          # [N_obj, lang_proj_dim]
-                text_feat = text_feat[mask_batch]                    # [batch_size, lang_proj_dim]
-                object_embedding = torch.cat(
-                    [object_embedding, text_feat], dim=-1
-                )                                                    # [batch_size, num_obs_dim + lang_proj_dim]
-            # ---------------------------------------------------------------------
+                if "strict_text" not in data or "natural_text" not in data:
+                    raise ValueError("Missing language keys in data")
+            # if self.use_language_conditioning:
+            #     if "text" not in data:
+            #         raise ValueError("Missing 'text' key")
+                
+                # 1. 提取老教师 CLIP 的标准特征 (无梯度)
+                with torch.no_grad():
+                    clip_feat = self.clip_text_encoder(data["strict_text"])# 输入: "up handle"
+                    clip_feat = self.clip_text_projection(clip_feat)
+                    clip_feat = clip_feat[mask_batch]
+
+                # 2. 提取学生 Qwen 的特征
+                qwen_feat = self.qwen_text_encoder(data["natural_text"])# 输入: "grasp the knife to cut"
+                qwen_feat = qwen_feat[mask_batch]
+
+                # 3. 如果在蒸馏第一阶段：强迫 Qwen 模仿 CLIP
+                if self.DISTILL_PHASE:
+                    # 算 MSE Loss，权重 10.0 逼着它快点学
+                    distill_loss = torch.nn.functional.mse_loss(qwen_feat, clip_feat)
+                    # 临时存放在 data 里，不碰 losses 字典！
+                    data["temp_distill_loss"] = distill_loss
+                    #losses["qwen_distill_loss"] = (10.0, distill_loss)
+                    # 此时 DiT 吃到的还是原汁原味的 CLIP 特征
+                    text_feat = clip_feat 
+                else:
+                    # 第二阶段端到端：Qwen 正式接管！不再需要模仿 CLIP 了
+                    text_feat = qwen_feat
+
+                # 把文本特征和点云特征拼在一起
+                object_embedding = torch.cat([object_embedding, text_feat], dim=-1)
+############################################################QWEN
+
+            # # ---- Language conditioning -------------------------------------------
+            # if self.use_language_conditioning:
+            #     if "text" not in data:
+            #         raise ValueError(
+            #             "Language conditioning is enabled but 'text' key is missing "
+            #             "from the data dictionary. Provide a list of task description "
+            #             "strings (one per object) under data['text']."
+            #         )
+            #     # data["text"]: list of str, length = num_objects_in_batch
+            #     text_feat = self.text_encoder(data["text"])          # [N_obj, clip_dim]
+            #     text_feat = self.text_projection(text_feat)          # [N_obj, lang_proj_dim]
+            #     text_feat = text_feat[mask_batch]                    # [batch_size, lang_proj_dim]
+            #     object_embedding = torch.cat(
+            #         [object_embedding, text_feat], dim=-1
+            #     )                                                    # [batch_size, num_obs_dim + lang_proj_dim]
+            # # ---------------------------------------------------------------------
         else:
             raise NotImplementedError(f"Pose repr {self.pose_repr} not implemented!")
 
@@ -541,6 +627,15 @@ class GraspGenGenerator(nn.Module):
         outputs["noisy_grasps_mat"] = noisy_grasps_mat.reshape(grasps_init_size)
         outputs["grasps_gt_mat"] = grasps_gt_mat.reshape(grasps_init_size)
 
+        # ==================== 【兜底拦截：注入 Qwen 蒸馏 Loss】 ====================
+        if "temp_distill_loss" in data:
+            # 如果是蒸馏阶段，我们强行把前面的所有无用 Loss 全部清空！
+            # 这样不仅绝对不会报 UnboundLocalError，还能保证计算图无比纯净！
+            losses = {}  
+            losses["qwen_distill_loss"] = (10.0, data["temp_distill_loss"])
+        # ===============================================================
+
+
         return outputs, losses, stats
 
     def forward_inference(self, data, return_metrics=False):
@@ -614,20 +709,48 @@ class GraspGenGenerator(nn.Module):
                     mask_batch
                 ]  # Redistribute object embeddings to full batch, result is [batch_size, self.num_obs_dim]
 
-                # ---- Language conditioning ---------------------------------------
+
+# ---- Language conditioning (Inference 模式) -------------------------
                 if self.use_language_conditioning:
-                    if "text" not in data:
-                        raise ValueError(
-                            "Language conditioning is enabled but 'text' key is "
-                            "missing from the data dictionary."
-                        )
-                    text_feat = self.text_encoder(data["text"])      # [N_obj, clip_dim]
-                    text_feat = self.text_projection(text_feat)      # [N_obj, lang_proj_dim]
-                    text_feat = text_feat[mask_batch]                # [batch_size, lang_proj_dim]
-                    object_embedding = torch.cat(
-                        [object_embedding, text_feat], dim=-1
-                    )                                                # [batch_size, num_obs_dim + lang_proj_dim]
+                    if "strict_text" not in data or "natural_text" not in data:
+                        raise ValueError("Missing language keys in data")
+
+                # if self.use_language_conditioning:
+                #     if "text" not in data:
+                #         raise ValueError("Missing 'text' key")
+                    
+                    # 1. 如果在第一阶段 (蒸馏)，验证时继续用老教师 CLIP 生成，因为 Qwen 还没出师
+                    if getattr(self, 'DISTILL_PHASE', False):
+                        text_feat = self.clip_text_encoder(data["strict_text"]) # <--- 改成 strict_text
+                        text_feat = self.clip_text_projection(text_feat)
+                    # 2. 如果在第二阶段 (端到端)，验证时正式启用 Qwen！
+                    else:
+                        text_feat = self.qwen_text_encoder(data["natural_text"]) # <--- 改成 natural_text
+                        
+                    text_feat = text_feat[mask_batch]
+                    object_embedding = torch.cat([object_embedding, text_feat], dim=-1)
                 # -----------------------------------------------------------------
+
+
+
+
+
+
+
+                # # ---- Language conditioning ---------------------------------------
+                # if self.use_language_conditioning:
+                #     if "text" not in data:
+                #         raise ValueError(
+                #             "Language conditioning is enabled but 'text' key is "
+                #             "missing from the data dictionary."
+                #         )
+                #     text_feat = self.text_encoder(data["text"])      # [N_obj, clip_dim]
+                #     text_feat = self.text_projection(text_feat)      # [N_obj, lang_proj_dim]
+                #     text_feat = text_feat[mask_batch]                # [batch_size, lang_proj_dim]
+                #     object_embedding = torch.cat(
+                #         [object_embedding, text_feat], dim=-1
+                #     )                                                # [batch_size, num_obs_dim + lang_proj_dim]
+                # # -----------------------------------------------------------------
 
             if self.compositional_schedular:
                 self.noise_scheduler_pos.set_timesteps(self.num_diffusion_iters_eval)

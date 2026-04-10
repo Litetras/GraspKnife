@@ -1515,38 +1515,113 @@ class ObjectPickDataset(PickDataset):
                 
         if len(outputs["points"].shape) == 2:
             outputs["points"] = outputs["points"].unsqueeze(0)
-# ---- 语言条件：任务描述文本 ----##############
-        # 1. 获取纯净的物体名称 (例如从 "objects/knife_geo_up.obj" 提取出 "knife_geo_up")
-        obj_name = os.path.basename(self.scenes[idx]).split('.')[0]
-        
-        # 2. 直接无脑读取 task_texts.json 里的 "task1"
-        if hasattr(self, 'task_texts') and obj_name in self.task_texts and "task1" in self.task_texts[obj_name]:
-            # 这会正确地把 'knife_geo_up' 映射为 "up"，把 'knife_geo_down' 映射为 "down"
-            outputs["text"] = self.task_texts[obj_name]["task1"]
-        # else:
-        #     # 极限容错：万一 json 没配好，直接看文件名里有没有 up/down
-        #     if 'down' in obj_name.lower():
-        #         outputs["text"] = "down"
-        #     else:
-        #         outputs["text"] = "up"
-        
 
-        else:
-            # 动态智能解析：直接从文件名中提取部位和方向组合成自然语言
-            # 比如 "hammer_27_up_handle" 会变成 "up handle"
-            direction = "up" if "_up_" in obj_name else "down"
+
+
+
+
+        # # ---- 语言条件：任务描述文本 ----##############
+        # # 1. 获取纯净的物体名称 (例如从 "objects/knife_geo_up.obj" 提取出 "knife_geo_up")
+        # obj_name = os.path.basename(self.scenes[idx]).split('.')[0]
+        
+        # # 2. 直接无脑读取 task_texts.json 里的 "task1"
+        # if hasattr(self, 'task_texts') and obj_name in self.task_texts and "task1" in self.task_texts[obj_name]:
+        #     # 这会正确地把 'knife_geo_up' 映射为 "up"，把 'knife_geo_down' 映射为 "down"
+        #     outputs["text"] = self.task_texts[obj_name]["task1"]
+
+        # else:
+        #     # 动态智能解析：直接从文件名中提取部位和方向组合成自然语言
+        #     # 比如 "hammer_27_up_handle" 会变成 "up handle"
+        #     direction = "up" if "_up_" in obj_name else "down"
             
-            if "_handle" in obj_name:
-                part = "handle"
-            elif "_head" in obj_name:
-                part = "head"
-            elif "_blade" in obj_name:
-                part = "blade"
-            else:
-                part = "" # 兼容你之前只有 up/down 的老数据
+        #     if "_handle" in obj_name:
+        #         part = "handle"
+        #     elif "_head" in obj_name:
+        #         part = "head"
+        #     elif "_blade" in obj_name:
+        #         part = "blade"
+        #     else:
+        #         part = "" # 兼容你之前只有 up/down 的老数据
                 
-            outputs["text"] = f"{direction} {part}".strip()
+        #     outputs["text"] = f"{direction} {part}".strip()
+
+
+
+
+        # ===================================================================
+        # ---- 语言条件：任务描述文本 (隐式意图对齐终极版) ----
+        # 1. 获取纯净的物体名称 (全转小写方便匹配)
+        obj_name = os.path.basename(self.scenes[idx]).split('.')[0].lower()
+        
+        # 2. 提取死板的部位和方向标签 (给老教师 CLIP 听的 strict_text)
+        direction = "up" if "_up_" in obj_name else ("down" if "_down_" in obj_name else "")
+        part = ""
+        if "_handle" in obj_name: part = "handle"
+        elif "_head" in obj_name: part = "head"
+        elif "_blade" in obj_name: part = "blade"
+            
+        strict_text = f"{direction} {part}".strip()
+        outputs["strict_text"] = strict_text  # 存入 CLIP 的专属锚点
+
+        # 3. 提取工具种类 (Hammer 还是 Knife)
+        tool = "hammer" if "hammer" in obj_name else ("knife" if "knife" in obj_name else "object")
+
+        # 4. 根据工具种类和部位，动态生成【隐式意图】自然语言
+        natural_templates = []
+        
+        if tool == "knife":
+            if part == "handle":
+                if direction == "up":
+                    natural_templates = [
+                        "Grasp the knife to cut.",           # 纯隐式：切菜
+                        "I need to chop these vegetables.",  # 纯隐式意图
+                        "Pick up the knife from the top."    # 显式兜底
+                    ]
+                else: # down handle
+                    natural_templates = [
+                        "Hand me the knife safely.",         # 纯隐式：递送
+                        "Pass the knife to me.",             # 纯隐式：传递
+                        "Hold the knife from underneath."    # 显式兜底
+                    ]
+            elif part == "blade":
+                natural_templates = [
+                    "Pinch the blade to pass it to me.",
+                    "Hold the flat side of the blade safely."
+                ]
+                
+        elif tool == "hammer":
+            if part == "handle":
+                if direction == "up":
+                    natural_templates = [
+                        "Grasp the hammer to pin.",          # 纯隐式：敲击
+                        "I need to pound this nail in.",     # 纯隐式意图
+                        "Hold the hammer by the top handle." # 显式兜底
+                    ]
+                else: # down handle
+                    natural_templates = [
+                        "Grasp the hammer to pull the nail.",# 纯隐式：起钉子
+                        "Hand me the hammer.",               # 纯隐式：递送
+                        "Hold the hammer from the bottom."   # 显式兜底
+                    ]
+
+        # 兜底：如果都没有匹配上，给个基础的
+        if not natural_templates:
+            natural_templates = [f"Grasp the {direction} {part} of the {tool}."]
+            
+        # 5. 随机挑选一句自然语言，存入 natural_text (Qwen 专属)
+        outputs["natural_text"] = random.choice(natural_templates)
+        # ===================================================================
+
+
+
+
         return outputs
+
+
+
+
+
+
 
 
 def generate_negative_hardnegatives(
@@ -1877,29 +1952,57 @@ def collate_batch_keys(batch):
         batch["task_is_pick"] = torch.stack([torch.tensor(t == "pick") for t in task])
         batch["task_is_place"] = torch.stack([torch.tensor(t == "place") for t in task])
 
-    # ---- 语言条件：text 是字符串列表，跳过 tensor 转换，直接保留 ----
-    text_list = batch.pop("text", None)
-#######################################################################
+
+
+
+# ---- 语言条件：文本是字符串列表，跳过 tensor 转换，直接保留 ----
+    strict_text_list = batch.pop("strict_text", None)
+    natural_text_list = batch.pop("natural_text", None)
+
     for key in batch:
         if key in [
-            "inputs",
-            "points",
-            "seg",
-            "object_inputs",
-            "bottom_center",
-            "cam_pose",
-            "ee_pose",
-            "placement_masks",
-            "placement_region",
+            "inputs", "points", "seg", "object_inputs",
+            "bottom_center", "cam_pose", "ee_pose",
+            "placement_masks", "placement_region",
         ]:
             batch[key] = torch.stack(batch[key])
         if key in ["contact_dirs", "approach_dirs", "offsets"]:
             batch[key] = torch.cat(batch[key])
 
-    if text_list is not None:
-        batch["text"] = text_list
+    # 把列表重新塞回 batch 字典里传给模型
+    if strict_text_list is not None:
+        batch["strict_text"] = strict_text_list
+    if natural_text_list is not None:
+        batch["natural_text"] = natural_text_list
 
     return batch
+
+
+
+
+#     # ---- 语言条件：text 是字符串列表，跳过 tensor 转换，直接保留 ----
+#     text_list = batch.pop("text", None)
+# #######################################################################
+#     for key in batch:
+#         if key in [
+#             "inputs",
+#             "points",
+#             "seg",
+#             "object_inputs",
+#             "bottom_center",
+#             "cam_pose",
+#             "ee_pose",
+#             "placement_masks",
+#             "placement_region",
+#         ]:
+#             batch[key] = torch.stack(batch[key])
+#         if key in ["contact_dirs", "approach_dirs", "offsets"]:
+#             batch[key] = torch.cat(batch[key])
+
+#     if text_list is not None:
+#         batch["text"] = text_list
+
+#     return batch
 
 
 def collate(batch):
