@@ -199,7 +199,7 @@ class GraspGenGenerator(nn.Module):
             # 【终极控制开关】：
             # 第一阶段 (特征对齐)：设为 True (冻结DiT，Qwen只学特征)
             # 第二阶段 (端到端微调)：设为 False (解冻DiT，Qwen接管控制)
-            self.DISTILL_PHASE =  False #True  ###########################
+            #self.DISTILL_PHASE =  False #True  ###########################
             # ====================================================================
 
             # 1. 老教师：保留原来的 CLIP
@@ -219,8 +219,7 @@ class GraspGenGenerator(nn.Module):
                 target_dim=lang_proj_dim, 
                 use_4bit=True
             )
-            
-            logger.info(f"Language conditioning enabled: Qwen Mode! Distill Phase: {self.DISTILL_PHASE}")
+
 ########################################################QWEN########
 
 
@@ -461,43 +460,30 @@ class GraspGenGenerator(nn.Module):
                 mask_batch
             ]  # Redistribute object embeddings to full batch, result is [batch_size, self.num_obs_dim]
 
-
-#########################################################QWEN
-# ---- Language conditioning (特征对齐与切换) -------------------------
-
+# ====================================================================
             if self.use_language_conditioning:
                 if "strict_text" not in data or "natural_text" not in data:
                     raise ValueError("Missing language keys in data")
-            # if self.use_language_conditioning:
-            #     if "text" not in data:
-            #         raise ValueError("Missing 'text' key")
-                
-                # 1. 提取老教师 CLIP 的标准特征 (无梯度)
+                # 1. 提取老教师 CLIP 的标准特征 (无梯度，作为物理锚点)
                 with torch.no_grad():
-                    clip_feat = self.clip_text_encoder(data["strict_text"])# 输入: "up handle"
+                    clip_feat = self.clip_text_encoder(data["strict_text"])
                     clip_feat = self.clip_text_projection(clip_feat)
                     clip_feat = clip_feat[mask_batch]
 
-                # 2. 提取学生 Qwen 的特征
-                qwen_feat = self.qwen_text_encoder(data["natural_text"])# 输入: "grasp the knife to cut"
+                # 2. 提取学生 Qwen 的特征 (带梯度，准备接管世界)
+                qwen_feat = self.qwen_text_encoder(data["natural_text"])
                 qwen_feat = qwen_feat[mask_batch]
 
-                # 3. 如果在蒸馏第一阶段：强迫 Qwen 模仿 CLIP
-                if self.DISTILL_PHASE:
-                    # 算 MSE Loss，权重 10.0 逼着它快点学
-                    distill_loss = torch.nn.functional.mse_loss(qwen_feat, clip_feat)
-                    # 临时存放在 data 里，不碰 losses 字典！
-                    data["temp_distill_loss"] = distill_loss
-                    #losses["qwen_distill_loss"] = (10.0, distill_loss)
-                    # 此时 DiT 吃到的还是原汁原味的 CLIP 特征
-                    text_feat = clip_feat 
-                else:
-                    # 第二阶段端到端：Qwen 正式接管！不再需要模仿 CLIP 了
-                    text_feat = qwen_feat
+                # 3. 【你的核心创新】：特征锚定 Loss (Feature Anchoring)
+                # 计算它俩的距离，直接塞进 losses 字典！权重给个 10.0 作为强力约束。
 
-                # 把文本特征和点云特征拼在一起
+                distill_loss = torch.nn.functional.mse_loss(qwen_feat, clip_feat)
+                data["temp_anchor_loss"] = distill_loss # <--- 临时存在 data 里过渡一下
+
+                # 4. 勇敢地下场实操：永远把 Qwen 的特征喂给 DiT，让它去吃真实的物理梯度！
+                text_feat = qwen_feat
                 object_embedding = torch.cat([object_embedding, text_feat], dim=-1)
-############################################################QWEN
+# ====================================================================
 
             # # ---- Language conditioning -------------------------------------------
             # if self.use_language_conditioning:
@@ -553,7 +539,10 @@ class GraspGenGenerator(nn.Module):
         
 # 2.5 损失函数
         losses = {}
-        
+        # ==== 【安全注入：Qwen 联合优化的特征锚定 Loss】 ====
+        if "temp_anchor_loss" in data:
+            losses["qwen_anchor_loss"] = (10.0, data["temp_anchor_loss"])
+        # =====================================================
         # =====================================================================###############
         # 【创新缝合点】：面向任务的语言条件方向引导 Loss (Task-Oriented Direction Guidance Loss)
         # =====================================================================
@@ -627,13 +616,7 @@ class GraspGenGenerator(nn.Module):
         outputs["noisy_grasps_mat"] = noisy_grasps_mat.reshape(grasps_init_size)
         outputs["grasps_gt_mat"] = grasps_gt_mat.reshape(grasps_init_size)
 
-        # ==================== 【兜底拦截：注入 Qwen 蒸馏 Loss】 ====================
-        if "temp_distill_loss" in data:
-            # 如果是蒸馏阶段，我们强行把前面的所有无用 Loss 全部清空！
-            # 这样不仅绝对不会报 UnboundLocalError，还能保证计算图无比纯净！
-            losses = {}  
-            losses["qwen_distill_loss"] = (10.0, data["temp_distill_loss"])
-        # ===============================================================
+
 
 
         return outputs, losses, stats
@@ -710,29 +693,15 @@ class GraspGenGenerator(nn.Module):
                 ]  # Redistribute object embeddings to full batch, result is [batch_size, self.num_obs_dim]
 
 
-# ---- Language conditioning (Inference 模式) -------------------------
+                # ---- Language conditioning (Inference 模式) -------------------------
                 if self.use_language_conditioning:
                     if "strict_text" not in data or "natural_text" not in data:
                         raise ValueError("Missing language keys in data")
 
-                # if self.use_language_conditioning:
-                #     if "text" not in data:
-                #         raise ValueError("Missing 'text' key")
-                    
-                    # 1. 如果在第一阶段 (蒸馏)，验证时继续用老教师 CLIP 生成，因为 Qwen 还没出师
-                    if getattr(self, 'DISTILL_PHASE', False):
-                        text_feat = self.clip_text_encoder(data["strict_text"]) # <--- 改成 strict_text
-                        text_feat = self.clip_text_projection(text_feat)
-                    # 2. 如果在第二阶段 (端到端)，验证时正式启用 Qwen！
-                    else:
-                        text_feat = self.qwen_text_encoder(data["natural_text"]) # <--- 改成 natural_text
-                        
+                    # 既然联合训练，直接让 Qwen 挑大梁！
+                    text_feat = self.qwen_text_encoder(data["natural_text"]) 
                     text_feat = text_feat[mask_batch]
                     object_embedding = torch.cat([object_embedding, text_feat], dim=-1)
-                # -----------------------------------------------------------------
-
-
-
 
 
 
