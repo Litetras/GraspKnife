@@ -39,7 +39,11 @@ from grasp_gen.models.ptv3.ptv3 import PointTransformerV3
 from grasp_gen.robot import get_gripper_info
 from grasp_gen.utils.logging_config import get_logger
 from grasp_gen.models.model_utils import load_pretrained_checkpoint_to_dict
-from grasp_gen.models.clip_text_encoder import TextEncoder  # <-- 加上这行#########
+# from grasp_gen.models.clip_text_encoder import TextEncoder  # <-- 加上这行#########
+from grasp_gen.models.qwen_text_encoder import QwenTextEncoder
+
+
+
 
 logger = get_logger(__name__)
 
@@ -96,10 +100,23 @@ class GraspGenDiscriminator(nn.Module):
         self.lang_proj_dim = lang_proj_dim if use_language_conditioning else 0
 
         if self.use_language_conditioning:
-            self.text_encoder = TextEncoder(clip_backbone)
-            self.text_projection = nn.Linear(self.text_encoder.embed_dim, lang_proj_dim)
-            logger.info(f"Discriminator Language conditioning enabled: CLIP '{clip_backbone}' -> proj dim={lang_proj_dim}")
-        # ----------------------------##############
+            self.qwen_text_encoder = QwenTextEncoder(
+                model_id="/home/zyp/models/qwen/Qwen2___5-3B-Instruct",
+                target_dim=lang_proj_dim,
+                use_4bit=True
+            )
+            # 【核心安全锁 1】：绝对冻结 Qwen！判别器只能用特征，不能反向修改它！
+            for p in self.qwen_text_encoder.parameters(): 
+                p.requires_grad = False
+                
+            logger.info(f"Discriminator Language conditioning enabled: Qwen Mode! (Frozen)")
+
+
+        # if self.use_language_conditioning:
+        #     self.text_encoder = TextEncoder(clip_backbone)
+        #     self.text_projection = nn.Linear(self.text_encoder.embed_dim, lang_proj_dim)
+        #     logger.info(f"Discriminator Language conditioning enabled: CLIP '{clip_backbone}' -> proj dim={lang_proj_dim}")
+        # # ----------------------------##############
 
         if self.grasp_repr == "r3_6d":
             self.output_dim = 9
@@ -180,6 +197,13 @@ class GraspGenDiscriminator(nn.Module):
             nn.ReLU(),
             nn.Linear(total_input_dim // 4, 1),
         )
+        # ================== 【显存与特征保护锁】 ==================
+        # 强制冻结点云编码器和抓取姿态编码器，只允许最后的 prediction_head (MLP) 训练
+        logger.info("Freezing Object Encoder and Sample Encoder for Discriminator...")
+        for p in self.object_encoder.parameters(): p.requires_grad = False
+        if hasattr(self, 'sample_encoder'):
+            for p in self.sample_encoder.parameters(): p.requires_grad = False
+        # ========================================================
 
         if self.checkpoint_object_encoder_pretrained is not None:
             if os.path.exists(self.checkpoint_object_encoder_pretrained):
@@ -308,15 +332,30 @@ class GraspGenDiscriminator(nn.Module):
             ]  # Redistribute object embeddings to full batch, result is [batch_size, self.num_obs_dim]
 
             total_embedding = torch.cat([sample_embedding, object_embedding], axis=-1)
+        
+        
         # ==== 新增：将语言特征拼接到 total_embedding ====#
         if self.use_language_conditioning:
-            if "text" not in data:
-                raise ValueError("Discriminator: Language conditioning is enabled but 'text' key is missing.")
-            text_feat = self.text_encoder(data["text"])
-            text_feat = self.text_projection(text_feat)
+            if "natural_text" not in data:
+                raise ValueError("Discriminator: Language conditioning is enabled but 'natural_text' key is missing.")
+            
+            with torch.no_grad(): # 【核心安全锁 2】：在此处彻底切断梯度回传给 Qwen
+                text_feat = self.qwen_text_encoder(data["natural_text"])
+                
             text_feat = text_feat[mask_batch]
             total_embedding = torch.cat([total_embedding, text_feat], dim=-1)
         # =================================================
+        
+        
+        # # ==== 新增：将语言特征拼接到 total_embedding ====#
+        # if self.use_language_conditioning:
+        #     if "text" not in data:
+        #         raise ValueError("Discriminator: Language conditioning is enabled but 'text' key is missing.")
+        #     text_feat = self.text_encoder(data["text"])
+        #     text_feat = self.text_projection(text_feat)
+        #     text_feat = text_feat[mask_batch]
+        #     total_embedding = torch.cat([total_embedding, text_feat], dim=-1)
+        # # =================================================
 
         logits = self.prediction_head(total_embedding)
 
