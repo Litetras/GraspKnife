@@ -143,17 +143,59 @@ def train_one_epoch(
         if dist.is_initialized():
             dist.barrier()
 
-        # loss = sum([w * v for w, v in losses.values()])
-                # ================== 【修改：安全计算 Loss，只保留有梯度的项】 ==================
+
+
+# ================== 【终极修改：交叉渐变 (彻底放开 Anchor 束缚)】 ==================
         loss = 0.0
-        for w, v in losses.values():
-            # 只有当 v 是张量且有梯度时，才加进去
-            if isinstance(v, torch.Tensor) and v.requires_grad:
-                loss = loss + w * v
-            elif isinstance(v, torch.Tensor):
-                # 如果没有梯度，只加它的数值（不影响反向传播）
-                loss = loss + w * v.detach()
-        # ==================================================================
+        
+        # 0. 专属计数器
+        if not hasattr(model, 'lora_finetune_step'):
+            model.lora_finetune_step = 0
+        model.lora_finetune_step += 1
+        
+        # 1. 设定步数 
+        WARMUP_STEPS = 2000.0  
+        TRANSITION_STEPS = 1000.0 
+        
+        # 2. 计算交叉权重 (Cross-fade)
+        # 物理权重从 0.0 逐渐爬升到 1.0
+        physics_weight = min(1.0, max(0.0, (model.lora_finetune_step - WARMUP_STEPS) / TRANSITION_STEPS))
+        
+        # 【核心改变】：蒸馏权重从 10.0 逐渐衰减到 0.0！(过了 3000 步后，彻底放飞自我)
+        anchor_weight = 10.0 * (1.0 - physics_weight)
+        
+        # 3. 记录到 Tensorboard，观察这两根线如何完美的“X”型交叉
+        if rank == 0:
+            writer.add_scalar("train/weight_physics", physics_weight, global_step)
+            writer.add_scalar("train/weight_anchor", anchor_weight, global_step)
+
+        # 4. 组装 Loss
+        # 4.1 只有在 anchor_weight > 0 时才计算蒸馏 (过渡期结束后，这部分直接消失)
+        if "qwen_anchor_loss" in losses and anchor_weight > 0:
+            loss = loss + anchor_weight * losses["qwen_anchor_loss"][1]
+
+        # 4.2 物理 Loss
+        for key, (w, v) in losses.items():
+            if key != "qwen_anchor_loss":
+                if isinstance(v, torch.Tensor) and v.requires_grad:
+                    loss = loss + (w * physics_weight) * v
+                elif isinstance(v, torch.Tensor):
+                    loss = loss + (w * physics_weight) * v.detach()
+        # =======================================================================================
+        
+        
+        
+        # # loss = sum([w * v for w, v in losses.values()])
+        #         # ================== 【修改：安全计算 Loss，只保留有梯度的项】 ==================
+        # loss = 0.0
+        # for w, v in losses.values():
+        #     # 只有当 v 是张量且有梯度时，才加进去
+        #     if isinstance(v, torch.Tensor) and v.requires_grad:
+        #         loss = loss + w * v
+        #     elif isinstance(v, torch.Tensor):
+        #         # 如果没有梯度，只加它的数值（不影响反向传播）
+        #         loss = loss + w * v.detach()
+        # # ==================================================================
 
 
         if dist.is_initialized():
