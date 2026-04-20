@@ -111,11 +111,11 @@ class GraspGen(nn.Module):
             f"Loading generator checkpoint from {grasp_generator_ckpt_filepath}"
         )
         ckpt = torch.load(grasp_generator_ckpt_filepath, map_location="cpu")
-        self.grasp_generator.load_state_dict(ckpt["model"])
+        self.grasp_generator.load_state_dict(ckpt["model"], strict=False)###########################推理阶段，生成器允许部分权重不匹配（strict=False），以适应可能的架构差异或缺失的权重
 
         logger.info(
             f"Loading discriminator checkpoint from {grasp_discriminator_ckpt_filepath}"
         )
         ckpt = torch.load(grasp_discriminator_ckpt_filepath, map_location="cpu")
 
-        self.grasp_discriminator.load_state_dict(ckpt["model"])
+        self.grasp_discriminator.load_state_dict(ckpt["model"], strict=False)###########################推理阶段，判别器允许部分权重不匹配（strict=False），以适应可能的架构差异或缺失的权重
