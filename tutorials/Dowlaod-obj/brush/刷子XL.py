@@ -5,25 +5,32 @@ print("正在加载 Objaverse 标注库...")
 annotations = objaverse.load_annotations()
 
 # ==========================================
-# 核心过滤逻辑：专注床刷/除尘刷 (Bed Brush / Dust Brush)
+# 核心过滤逻辑：灵活碰撞 + 铁血排异
 # ==========================================
 
-# 【核心基础词】
+# 1. 核心词（必须有）
 core_keyword = 'brush'
 
-# 【强相关场景词】必须包含以下至少一个词，确保是清洁、除尘用的手持刷
+# 2. 场景白名单（必须有至少一个）：聚焦于桌面、手持、扫灰
 context_keywords = {
-    'dust', 'bed', 'hand', 'sweep', 'clean', 'counter', 'bench', 'dustpan'
+    'dust', 'sweep', 'clean', 'bed', 'desk', 'table', 'counter', 'hand', 'clothes', 'lint'
 }
 
-# 【拒绝的黑名单词】全网封杀牙刷、画笔、化妆刷、梳子、马桶刷等异形刷
+# 3. 终极黑名单（绝对不能有！一旦出现直接枪毙）
 exclude_keywords = {
-    'tooth', 'paint', 'hair', 'makeup', 'cosmetic', 'toilet', 
-    'bottle', 'wire', 'shoe', 'shaving', 'art', 'draw', 'comb',
-    'sculpt', 'mascara', 'toothbrush', 'paintbrush', 'hairbrush'
+    # 个人护理与艺术 (防牙刷、化妆刷、画笔)
+    'paint', 'hair', 'makeup', 'cosmetic', 'toilet', 'bottle', 'wire', 
+    'shoe', 'shaving', 'art', 'draw', 'comb', 'sculpt', 'mascara', 'tooth',
+    # 厨房卫浴与水洗 (防洗碗刷、浴缸刷、海绵)
+    'scrub', 'dish', 'kitchen', 'wash', 'sponge', 'sink', 'bath', 'shower', 'tub', 'laundry',
+    # 家电与工业附件 (防吸尘器吸头、扫地机器人、电钻刷头、滚刷)
+    'vacuum', 'robot', 'roomba', 'roller', 'spin', 'rotary', 'industrial', 
+    'machine', 'motor', 'electric', 'attachment', 'drill', 'cnc', 'pipe',
+    # 长柄与大型清洁 (防扫街车、长柄大扫把、洗车大刷、拖把)
+    'floor', 'street', 'car', 'mop', 'broomstick', 'yard', 'outdoor'
 }
 
-print("正在搜集除尘刷/床刷模型（已严格排除牙刷、画笔等无关类别）...")
+print("正在搜集除尘刷（灵活碰撞词汇，并施加最严苛的黑名单）...")
 final_uids = []
 
 for uid, item in annotations.items():
@@ -31,7 +38,6 @@ for uid, item in annotations.items():
     name = str(item.get('name', '')).lower()
     description = str(item.get('description', '')).lower()
     
-    # 兼容标签格式
     tag_strings = []
     for tag in item.get('tags', []):
         if isinstance(tag, dict):
@@ -40,34 +46,39 @@ for uid, item in annotations.items():
             tag_strings.append(str(tag).lower())
     tags_text = ' '.join(tag_strings)
     
+    # 组合全部文本进行判定，确保是全小写
     full_text = f"{name} {description} {tags_text}"
     
     # 2. 判断逻辑
+    # 条件A：必须包含基础词 brush
     has_brush = core_keyword in full_text
+    
+    # 条件B：必须包含至少一个清扫/桌面的场景词汇
     has_context = any(k in full_text for k in context_keywords)
+    
+    # 条件C：绝对不能包含黑名单里的任何词汇
     has_excluded = any(k in full_text for k in exclude_keywords)
     
-    # 必须是刷子 + 符合除尘/清洁场景 + 绝对不能是画笔/牙刷等
+    # 额外保护：如果只有 sweep 这个词，为了防止是扫把(broom)，强行要求包含 brush
     if has_brush and has_context and not has_excluded:
         final_uids.append(uid)
 
 # ==========================================
 # 结果输出与保存
 # ==========================================
-print("="*60)
+print("\n" + "="*60)
 print(f"筛选完成！")
-print(f"  - 找到的单侧除尘/床刷总数: {len(final_uids)}")
+print(f"  - 找到的高纯度除尘/床刷总数: {len(final_uids)}")
 print("="*60)
 
-# 保存UID列表
-output_file = "dust_bed_brush_uids.json"
+output_file = "pure_dust_brush_uids.json"
 with open(output_file, 'w', encoding='utf-8') as f:
     json.dump(final_uids, f)
 print(f"\nUID列表已保存至: {output_file}")
 
-# 打印前10个模型预览
+# 打印前 10 个模型预览
 if final_uids:
-    print("\n前10个模型预览:")
+    print("\n前 10 个模型预览:")
     for i in range(min(10, len(final_uids))):
         uid = final_uids[i]
         data = annotations[uid]

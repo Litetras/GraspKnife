@@ -6,10 +6,10 @@ import re
 # 配置区域 (按需修改这两项即可通用)
 # ==========================================
 # 1. 指向你存放原始模型的文件夹
-WORK_DIR = "/home/zyp/Desktop/hammers_cleaned_aligned"  
+WORK_DIR = "/home/zyp/pan1/objaverse_dataset_5/electric_drills_cleaned_aligned"  
 
 # 2. 设定你想要的文件前缀名称 (例如 "kitchen_knife", "claw_hammer", "cup" 等)
-PREFIX = "hammer"
+PREFIX = "drill"
 
 # 【自动生成】创建一个专门存放重命名后模型的输出文件夹，保护原始数据
 OUTPUT_DIR = os.path.join(WORK_DIR, "renamed_output")

@@ -3,19 +3,36 @@ import torch.nn as nn
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import LoraConfig, get_peft_model
 
+# 全局缓存只保存重型组件（Qwen主干），不缓存 mlp_projector
+_GLOBAL_QWEN_CACHE = None
+
 class QwenTextEncoder(nn.Module):
     def __init__(self, model_id="/home/zyp/models/qwen/Qwen2___5-3B-Instruct", target_dim=512, use_4bit=True):
         super().__init__()
         
-        # 1. 加载 Tokenizer（指定本地路径 + 强制断网，已清理重复代码）
+        global _GLOBAL_QWEN_CACHE
+
+        if _GLOBAL_QWEN_CACHE is not None:
+            print("\n🚀 [系统提示] 复用已加载的 Qwen 主干，节省显存！\n")
+            self.tokenizer = _GLOBAL_QWEN_CACHE['tokenizer']
+            self.qwen      = _GLOBAL_QWEN_CACHE['qwen']
+            # ✅ 关键修复：mlp_projector 不从缓存读取，每个实例独立创建
+            qwen_hidden_size = self.qwen.config.hidden_size
+            self.mlp_projector = nn.Sequential(
+                nn.Linear(qwen_hidden_size, 1024),
+                nn.GELU(),
+                nn.Linear(1024, target_dim)
+            ).to(torch.bfloat16).to(self.qwen.device)
+            return  # 只跳过 Qwen 加载，不跳过 mlp_projector 创建
+
+        # ---- 首次加载 ----
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_id,
-            local_files_only=True  # 【关键】强制只加载本地文件，不尝试联网
+            local_files_only=True
         )
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.padding_side = "right"
 
-        # 2. 显存优化：使用 4bit 加载 Qwen
         model_kwargs = {}
         if use_4bit:
             from transformers import BitsAndBytesConfig
@@ -28,37 +45,30 @@ class QwenTextEncoder(nn.Module):
         else:
             model_kwargs["torch_dtype"] = torch.bfloat16
 
-        print(f"Loading Qwen model {model_id}...")
-        
-        # 加载模型（指定本地路径 + 强制断网）
+        print(f"Loading Qwen model {model_id} for the FIRST time...")
         self.qwen = AutoModelForCausalLM.from_pretrained(
-            model_id, 
-            device_map="auto", 
+            model_id,
+            device_map="auto",
             local_files_only=True,
             **model_kwargs
         )
-        
-        # 3. 冻结 Qwen 原始参数并应用 LoRA
+
         for param in self.qwen.parameters():
             param.requires_grad = False
-            
+
         lora_config = LoraConfig(
-            r=16, 
+            r=16,
             lora_alpha=32,
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"], # 微调注意力层
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
             lora_dropout=0.05,
             bias="none",
             task_type="FEATURE_EXTRACTION"
         )
         self.qwen = get_peft_model(self.qwen, lora_config)
-        self.qwen.print_trainable_parameters() # 打印可训练的参数量
-        
-        # ================== 【新增：显存救命神器】 ==================
-        # 开启梯度检查点：用计算时间换取显存空间，能省下将近 30%~50% 的显存峰值消耗！
+        self.qwen.print_trainable_parameters()
         self.qwen.gradient_checkpointing_enable()
-        # =========================================================
 
-        # 4. 定义 MLP 投影层 (Qwen2.5-3B 的 hidden_size 是 2048)
+        # mlp_projector 在首次加载时也正常创建
         qwen_hidden_size = self.qwen.config.hidden_size
         self.mlp_projector = nn.Sequential(
             nn.Linear(qwen_hidden_size, 1024),
@@ -66,41 +76,30 @@ class QwenTextEncoder(nn.Module):
             nn.Linear(1024, target_dim)
         ).to(torch.bfloat16).to(self.qwen.device)
 
+        # ✅ 全局缓存只保存 Qwen 主干，不包含 mlp_projector
+        _GLOBAL_QWEN_CACHE = {
+            'tokenizer': self.tokenizer,
+            'qwen':      self.qwen,
+        }
+
     def forward(self, text_list):
-        """
-        输入: text_list (例如 ["up handle", "down blade"])
-        输出: shape 为 [batch_size, 512] 的特征向量
-        """
-        # Tokenize 文本
         inputs = self.tokenizer(
-            text_list, 
-            return_tensors="pt", 
-            padding=True, 
-            truncation=True, 
+            text_list,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
             max_length=64
         ).to(self.qwen.device)
 
-        # 提取特征 (output_hidden_states=True 提取隐层状态)
         outputs = self.qwen(**inputs, output_hidden_states=True)
-        
-        # 取最后一层的隐藏状态
-        last_hidden_state = outputs.hidden_states[-1] # Shape: [Batch, Seq_Len, Hidden_Size]
+        last_hidden_state = outputs.hidden_states[-1]
 
-        # 提取每个句子的最后一个有效 Token（非 Padding Token）的隐藏状态
         batch_size = last_hidden_state.shape[0]
         sequence_lengths = inputs["attention_mask"].sum(dim=1) - 1
-        
-        # 获取汇聚后的特征: Shape: [Batch, 2048]
         pooled_features = last_hidden_state[torch.arange(batch_size), sequence_lengths]
 
-        # ==================== 【精度冲突补丁】 ====================
-        # 1. 强制对齐精度 (防止 mat1 vs mat2 报错)
         target_dtype = self.mlp_projector[0].weight.dtype
         pooled_features = pooled_features.to(target_dtype)
-
-        # 2. 通过 MLP 降维到 512 维
         projected_features = self.mlp_projector(pooled_features)
 
-        # 3. 强制把最终输出转回标准的 Float32
         return projected_features.to(torch.float32)
-        # =========================================================

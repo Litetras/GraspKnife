@@ -26,11 +26,11 @@ print(f"已设置网络代理为: {PROXY_URL}")
 BASE_OUTPUT_DIR = "/home/zyp/Desktop/objaverse_dataset"
 
 tasks = {
-    "mug": {"uid_file": "mug_uids.json", "output_dir": os.path.join(BASE_OUTPUT_DIR, "mugs"), "target_scale": 0.10, "prefix": "mug"},
+    #"mug": {"uid_file": "mug_uids.json", "output_dir": os.path.join(BASE_OUTPUT_DIR, "mugs"), "target_scale": 0.10, "prefix": "mug"},
     "spoon": {"uid_file": "spoon_uids.json", "output_dir": os.path.join(BASE_OUTPUT_DIR, "spoons"), "target_scale": 0.18, "prefix": "spoon"},
-    "screwdriver": {"uid_file": "screwdriver_uids.json", "output_dir": os.path.join(BASE_OUTPUT_DIR, "screwdrivers"), "target_scale": 0.20, "prefix": "screwdriver"},
-    "electric_drill": {"uid_file": "electric_drill_uids.json", "output_dir": os.path.join(BASE_OUTPUT_DIR, "electric_drills"), "target_scale": 0.25, "prefix": "electric_drill"},
-    "sprayer": {"uid_file": "sprayer_uids.json", "output_dir": os.path.join(BASE_OUTPUT_DIR, "sprayers"), "target_scale": 0.25, "prefix": "sprayer"}
+    #"screwdriver": {"uid_file": "screwdriver_uids.json", "output_dir": os.path.join(BASE_OUTPUT_DIR, "screwdrivers"), "target_scale": 0.20, "prefix": "screwdriver"},
+    #"electric_drill": {"uid_file": "electric_drill_uids.json", "output_dir": os.path.join(BASE_OUTPUT_DIR, "electric_drills"), "target_scale": 0.25, "prefix": "electric_drill"},
+    #"sprayer": {"uid_file": "sprayer_uids.json", "output_dir": os.path.join(BASE_OUTPUT_DIR, "sprayers"), "target_scale": 0.25, "prefix": "sprayer"}
 }
 
 MAX_RETRIES = 5

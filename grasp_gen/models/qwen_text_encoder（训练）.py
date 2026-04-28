@@ -3,28 +3,14 @@ import torch.nn as nn
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import LoraConfig, get_peft_model
 
-# ================== 【新增：全局单例缓存变量】 ==================
-_GLOBAL_QWEN_CACHE = None
-# =============================================================
-
 class QwenTextEncoder(nn.Module):
     def __init__(self, model_id="/home/zyp/models/qwen/Qwen2___5-3B-Instruct", target_dim=512, use_4bit=True):
         super().__init__()
         
-        # ================== 【新增：拦截重复加载逻辑】 ==================
-        global _GLOBAL_QWEN_CACHE
-        if _GLOBAL_QWEN_CACHE is not None:
-            print("\n🚀 [系统提示] 检测到重复实例化，触发共享模式：直接复用已加载的 Qwen，节省显存！\n")
-            self.tokenizer = _GLOBAL_QWEN_CACHE['tokenizer']
-            self.qwen = _GLOBAL_QWEN_CACHE['qwen']
-            self.mlp_projector = _GLOBAL_QWEN_CACHE['mlp_projector']
-            return  # 直接 return，跳过下面的加载代码！
-        # ==============================================================
-
-        # 1. 加载 Tokenizer
+        # 1. 加载 Tokenizer（指定本地路径 + 强制断网，已清理重复代码）
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_id,
-            local_files_only=True
+            local_files_only=True  # 【关键】强制只加载本地文件，不尝试联网
         )
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.padding_side = "right"
@@ -42,8 +28,9 @@ class QwenTextEncoder(nn.Module):
         else:
             model_kwargs["torch_dtype"] = torch.bfloat16
 
-        print(f"Loading Qwen model {model_id} for the FIRST time...")
+        print(f"Loading Qwen model {model_id}...")
         
+        # 加载模型（指定本地路径 + 强制断网）
         self.qwen = AutoModelForCausalLM.from_pretrained(
             model_id, 
             device_map="auto", 
@@ -58,16 +45,20 @@ class QwenTextEncoder(nn.Module):
         lora_config = LoraConfig(
             r=16, 
             lora_alpha=32,
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"], 
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"], # 微调注意力层
             lora_dropout=0.05,
             bias="none",
             task_type="FEATURE_EXTRACTION"
         )
         self.qwen = get_peft_model(self.qwen, lora_config)
-        self.qwen.print_trainable_parameters()
+        self.qwen.print_trainable_parameters() # 打印可训练的参数量
+        
+        # ================== 【新增：显存救命神器】 ==================
+        # 开启梯度检查点：用计算时间换取显存空间，能省下将近 30%~50% 的显存峰值消耗！
         self.qwen.gradient_checkpointing_enable()
+        # =========================================================
 
-        # 4. 定义 MLP 投影层
+        # 4. 定义 MLP 投影层 (Qwen2.5-3B 的 hidden_size 是 2048)
         qwen_hidden_size = self.qwen.config.hidden_size
         self.mlp_projector = nn.Sequential(
             nn.Linear(qwen_hidden_size, 1024),
@@ -75,14 +66,6 @@ class QwenTextEncoder(nn.Module):
             nn.Linear(1024, target_dim)
         ).to(torch.bfloat16).to(self.qwen.device)
 
-        # ================== 【新增：首次加载完成后，写入全局缓存】 ==================
-        _GLOBAL_QWEN_CACHE = {
-            'tokenizer': self.tokenizer,
-            'qwen': self.qwen,
-            'mlp_projector': self.mlp_projector
-        }
-        # =========================================================================
-        
     def forward(self, text_list):
         """
         输入: text_list (例如 ["up handle", "down blade"])
