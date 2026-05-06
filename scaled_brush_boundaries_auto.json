@@ -1,0 +1,142 @@
+{
+    "aligned_brush_16": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.09127255648262264,
+        "target_is_positive": true
+    },
+    "aligned_brush_9": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.07414366795931637,
+        "target_is_positive": true
+    },
+    "aligned_brush_13": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.06779051199510008,
+        "target_is_positive": true
+    },
+    "aligned_brush_8": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.09367966660627029,
+        "target_is_positive": true
+    },
+    "aligned_brush_6": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.20246107805474628,
+        "target_is_positive": false
+    },
+    "aligned_brush_1": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.06177694460251451,
+        "target_is_positive": true
+    },
+    "aligned_brush_12": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.078207245668373,
+        "target_is_positive": true
+    },
+    "aligned_brush_4": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.08365963525917189,
+        "target_is_positive": true
+    },
+    "aligned_brush_15": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.07231850381242583,
+        "target_is_positive": true
+    },
+    "aligned_brush_11": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.04587313663476253,
+        "target_is_positive": true
+    },
+    "aligned_brush_19": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.0849417042008849,
+        "target_is_positive": true
+    },
+    "aligned_brush_7": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.06475232665327894,
+        "target_is_positive": true
+    },
+    "aligned_brush_2": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.047528902712700244,
+        "target_is_positive": true
+    },
+    "aligned_brush_14": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.08383437829512416,
+        "target_is_positive": true
+    },
+    "aligned_brush_10": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.03712289340915566,
+        "target_is_positive": true
+    },
+    "aligned_brush_18": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.07354511279457576,
+        "target_is_positive": true
+    },
+    "aligned_brush_20": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.0967423099176469,
+        "target_is_positive": true
+    },
+    "aligned_brush_5": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.09367700033619122,
+        "target_is_positive": true
+    },
+    "aligned_brush_3": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.04892987207246305,
+        "target_is_positive": true
+    },
+    "aligned_brush_17": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.10845804444925125,
+        "target_is_positive": true
+    }
+}

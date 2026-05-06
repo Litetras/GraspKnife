@@ -1,0 +1,240 @@
+{
+    "1_knives": {
+        "Up": {
+            "axis_str": "-y",
+            "vector": [
+                0.0,
+                -1.0,
+                0.0
+            ]
+        },
+        "Down": {
+            "axis_str": "+y",
+            "vector": [
+                0.0,
+                1.0,
+                0.0
+            ]
+        }
+    },
+    "2_hammers": {
+        "Up": {
+            "axis_str": "-y",
+            "vector": [
+                0.0,
+                -1.0,
+                0.0
+            ]
+        },
+        "Down": {
+            "axis_str": "+y",
+            "vector": [
+                0.0,
+                1.0,
+                0.0
+            ]
+        }
+    },
+    "3_brushs": {
+        "Up": {
+            "axis_str": "-y",
+            "vector": [
+                0.0,
+                -1.0,
+                0.0
+            ]
+        },
+        "Down": {
+            "axis_str": "+y",
+            "vector": [
+                0.0,
+                1.0,
+                0.0
+            ]
+        }
+    },
+    "4_drills": {
+        "Up": {
+            "axis_str": "-y",
+            "vector": [
+                0.0,
+                -1.0,
+                0.0
+            ]
+        },
+        "Down": {
+            "axis_str": "+y",
+            "vector": [
+                0.0,
+                1.0,
+                0.0
+            ]
+        },
+        "Left": {
+            "axis_str": "+z",
+            "vector": [
+                0.0,
+                0.0,
+                1.0
+            ]
+        },
+        "Right": {
+            "axis_str": "-z",
+            "vector": [
+                0.0,
+                0.0,
+                -1.0
+            ]
+        },
+        "Front": {
+            "axis_str": "-x",
+            "vector": [
+                -1.0,
+                0.0,
+                0.0
+            ]
+        },
+        "Back": {
+            "axis_str": "+x",
+            "vector": [
+                1.0,
+                0.0,
+                0.0
+            ]
+        }
+    },
+    "5_spoons": {
+        "Up": {
+            "axis_str": "-z",
+            "vector": [
+                0.0,
+                0.0,
+                -1.0
+            ]
+        },
+        "Down": {
+            "axis_str": "+z",
+            "vector": [
+                0.0,
+                0.0,
+                1.0
+            ]
+        },
+        "Front": {
+            "axis_str": "+x",
+            "vector": [
+                1.0,
+                0.0,
+                0.0
+            ]
+        },
+        "Back": {
+            "axis_str": "-x",
+            "vector": [
+                -1.0,
+                0.0,
+                0.0
+            ]
+        },
+        "Right": {
+            "axis_str": "-y",
+            "vector": [
+                0.0,
+                -1.0,
+                0.0
+            ]
+        },
+        "Left": {
+            "axis_str": "+y",
+            "vector": [
+                0.0,
+                1.0,
+                0.0
+            ]
+        }
+    },
+    "6_screwdrivers": {
+        "Down": {
+            "axis_str": "+x",
+            "vector": [
+                1.0,
+                0.0,
+                0.0
+            ]
+        },
+        "Up": {
+            "axis_str": "-x",
+            "vector": [
+                -1.0,
+                0.0,
+                0.0
+            ]
+        },
+        "Front": {
+            "axis_str": "-y",
+            "vector": [
+                0.0,
+                -1.0,
+                0.0
+            ]
+        },
+        "Back": {
+            "axis_str": "+y",
+            "vector": [
+                0.0,
+                1.0,
+                0.0
+            ]
+        },
+        "Left": {
+            "axis_str": "-z",
+            "vector": [
+                0.0,
+                0.0,
+                -1.0
+            ]
+        },
+        "Right": {
+            "axis_str": "+z",
+            "vector": [
+                0.0,
+                0.0,
+                1.0
+            ]
+        }
+    },
+    "7_mugs": {
+        "Up": {
+            "axis_str": "-x",
+            "vector": [
+                -1.0,
+                0.0,
+                0.0
+            ]
+        },
+        "Down": {
+            "axis_str": "+x",
+            "vector": [
+                1.0,
+                0.0,
+                0.0
+            ]
+        },
+        "Front": {
+            "axis_str": "+z",
+            "vector": [
+                0.0,
+                0.0,
+                1.0
+            ]
+        },
+        "Back": {
+            "axis_str": "-z",
+            "vector": [
+                0.0,
+                0.0,
+                -1.0
+            ]
+        }
+    }
+}

@@ -1,0 +1,6621 @@
+{
+    "knife_21": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.031064223263454413,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_6": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.029481833603498136,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_16": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.01780717863788242,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_11": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.04313032771217245,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_24": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.01205843637346247,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_1": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.03168975738134634,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_18": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.019557270665588947,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_23": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.025281092315566134,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_17": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.036530839099625484,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_8": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.025692839550057946,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_22": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.01926711770346274,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_2": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.036559184860861973,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_12": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.026319618221820405,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_3": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.022890756686187213,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_10": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.004954253351318625,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_20": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.039168457881515094,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_14": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.03969765570230212,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_7": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.010751764320535763,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_23": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.024499231600028877,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_15": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.02379875480235419,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_28": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.009464277879327127,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_24": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.00010314600732510854,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_8": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.039353129848507196,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_22": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.01694484747036402,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_17": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.021057064716005734,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_29": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.03743794300497069,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_1": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.01753841641303481,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_13": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.021150198983651797,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_9": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.11160927244652169,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_2": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.02025941682095622,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_25": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.04050147450769093,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_6": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.07217702526892768,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_3": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.027104012190549656,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_10": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.025223540518798233,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_27": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.013402682887522914,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_11": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.03810161284822887,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_18": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.02688219307887022,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_20": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.0068006731722359106,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_5": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.09777775346263473,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_26": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.0010451175857655315,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_16": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.09574269430737022,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_9": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.07936590790897116,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_13": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.09647980660141289,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_8": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.10024741653348322,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_6": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.10096776519268119,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_1": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.09110405554531686,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_12": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.09792167630608971,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_4": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.08365963525917189,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_15": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.07231850381242583,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_11": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.1019284953095849,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_19": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.0972897134344002,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_7": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.06475232665327894,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_2": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.09062132465057163,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_14": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.08383437829512416,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_10": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.08458236462292572,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_18": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.08472225766276446,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_20": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.0967423099176469,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_5": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.029658336957891693,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_3": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.0670818602384529,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_5": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.02360707711677039,
+        "boundary_max": 0.03865590547365387,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_18": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.0416209703141775,
+        "boundary_max": -0.0054697138144924,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_4": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.09200839135918047,
+        "boundary_max": 0.027552332198637494,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_11": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.07591514701444635,
+        "boundary_max": -0.018630601408539702,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_14": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.05194143518969187,
+        "boundary_max": 0.0516684343466675,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_13": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.03507518840931765,
+        "boundary_max": 0.060930907161062045,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_10": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.05556373306633158,
+        "boundary_max": 0.025444447396642665,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_12": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.05877966794157769,
+        "boundary_max": 0.024283672304322938,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_3": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.06897355295447812,
+        "boundary_max": 0.05134446836898056,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_7": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.0786932525122325,
+        "boundary_max": 0.018537378310821702,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_19": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.0018704161494158891,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_6": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.007830768372395283,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_8": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.015567907488578593,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_5": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.016058859986468547,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_7": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.004887547280009029,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_16": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.017565047802457687,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_14": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.022477515168926054,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_1": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.006906299191363749,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_3": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.0026691614067608123,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_11": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.004886774840125457,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_18": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.010513595009310452,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_2": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.04091553123846234,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_4": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.009867032437420126,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_10": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.025270821202798638,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_12": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.008627236786781359,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_9": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.004023162173295437,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_20": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.04043473561145864,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_15": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.0027592024572977783,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_17": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.005983429407570386,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "screwdriver_17": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.024324537367439034,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_18": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.01798683275383068,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_23": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.018728672402254835,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_26": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.031010473264038666,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_19": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.004656970650679876,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_7": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.0026512051358105193,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_24": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.021319450523557545,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_6": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.008144178946038767,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_16": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.002293536102485373,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_25": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.02744194558983209,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_8": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.028392788617169002,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_20": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.009289003651528852,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_13": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.0008315622429101409,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_1": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.0307964068657752,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_14": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.023736854566324978,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_10": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.03330854980605611,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_2": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.01810868331816223,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_12": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.03645996386200753,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_5": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.007422782898202933,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_4": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.033877106805710364,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_21": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.04331382036830045,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "mug_19": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.03163113628129818,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_21": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.03448135367401871,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_14": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.029225004419644846,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_7": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.026212316911467727,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_1": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.026473904723274405,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_18": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.03233076645700718,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_9": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.027536923946603595,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_11": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.024781748791842844,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_5": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.032184391800441345,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_17": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.022155524180264143,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_20": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.025860161168192876,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_6": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.02813535758343711,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_4": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.03728134030345355,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_2": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.03470713292737179,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_23": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.03226071101708417,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_10": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.0278985323359895,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_3": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.032280609776927024,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_13": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.031900844606888246,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "knife_5": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.030002057277406763,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_9": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.014557054002220965,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_19": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.024590528397691172,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_15": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.03999798064187138,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_13": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.024763394397393668,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "knife_4": {
+        "category": "1_knives",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.029722285637246014,
+        "target_is_positive": false,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_12": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.0034358808023790713,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_4": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.003663758025601324,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_19": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.00618370965584966,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_21": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.020825043598330123,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_14": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.00235132190352552,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_16": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.01267544391205276,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "hammer_7": {
+        "category": "2_hammers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.011941829447727863,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "brush_17": {
+        "category": "3_brushs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.10845804444925125,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_21": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.060665260047922054,
+        "boundary_max": 0.002696777021932363,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_20": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.054233217387219576,
+        "boundary_max": -0.007195981581906265,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_6": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.027699312490421697,
+        "boundary_max": 0.04706220136286299,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_8": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.06395333809133817,
+        "boundary_max": 0.02996967934067236,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_17": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.06786281319302881,
+        "boundary_max": 0.013890715814648937,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_19": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.07360508774654671,
+        "boundary_max": 0.018172306737137392,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_9": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.06546038398951087,
+        "boundary_max": 0.036260113737068174,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_1": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.0862177494077058,
+        "boundary_max": 0.008823187285039058,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_15": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.06061635466875992,
+        "boundary_max": 0.019176734786760595,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "drill_16": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.07581147740473744,
+        "boundary_max": 0.01659367839093344,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_21": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.0398856973615495,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "spoon_13": {
+        "category": "5_spoons",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.008670565845861343,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "screwdriver_3": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.006688754014654104,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_9": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.004009171450093413,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_15": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.002977596370881816,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_27": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.005827421909350207,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_22": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.004515752936281003,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "screwdriver_11": {
+        "category": "6_screwdrivers",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": -0.013406428342451626,
+        "target_is_positive": true,
+        "orientations": {
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            }
+        }
+    },
+    "mug_16": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.028748908991095053,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "mug_24": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.03453186323577467,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    },
+    "drill_2": {
+        "category": "4_drills",
+        "split_axis": 0,
+        "mode": "3_points",
+        "boundary_min": -0.05754523778213024,
+        "boundary_max": 0.006877101806585899,
+        "orientations": {
+            "Up": {
+                "axis_str": "-y",
+                "vector": [
+                    0.0,
+                    -1.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+y",
+                "vector": [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            },
+            "Left": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Right": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            },
+            "Front": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Back": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        }
+    },
+    "mug_15": {
+        "category": "7_mugs",
+        "split_axis": 0,
+        "mode": "2_points",
+        "boundary_coord": 0.029112570305049344,
+        "target_is_positive": true,
+        "orientations": {
+            "Up": {
+                "axis_str": "-x",
+                "vector": [
+                    -1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Down": {
+                "axis_str": "+x",
+                "vector": [
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "Front": {
+                "axis_str": "+z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            },
+            "Back": {
+                "axis_str": "-z",
+                "vector": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    }
+}
