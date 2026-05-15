@@ -45,6 +45,7 @@ from grasp_gen.models.model_utils import (
 from grasp_gen.models.ptv3.ptv3 import PointTransformerV3
 from grasp_gen.robot import get_gripper_info
 from grasp_gen.utils.logging_config import get_logger
+from grasp_gen.dataset.dataset import OBJECT_ID2NAME
 
 logger = get_logger(__name__)
 
@@ -506,10 +507,34 @@ class GraspGenGenerator(nn.Module):
             # 将方向 Loss 加入总 Loss 中，基础权重设为 1.0 即可
             losses["direction_loss"] = (1.0, direction_loss.mean())
             
-            # 记录准确率到 Tensorboard
+            # 记录方向准确率到 Tensorboard
             with torch.no_grad():
-                acc_30 = (cos_sim > math.cos(30 / 180 * math.pi)).float().mean() * 100.0
+                dir_correct_30 = cos_sim > math.cos(30 / 180 * math.pi)
+
+                # 总体方向准确率
+                acc_30 = dir_correct_30.float().mean() * 100.0
                 stats["dir_acc_30"] = acc_30
+
+                # ================= 新增：按物体类别统计方向准确率 =================
+                if "object_ids" in data:
+                    object_ids = data["object_ids"]
+
+                    if isinstance(object_ids, list):
+                        object_ids = torch.cat(object_ids)
+
+                    object_ids = object_ids.reshape(-1).long().to(device)
+
+                    for obj_id, obj_name in OBJECT_ID2NAME.items():
+                        obj_mask = object_ids == obj_id
+
+                        if obj_mask.sum() > 0:
+                            stats[f"dir_acc_30_obj_{obj_name}"] = (
+                                dir_correct_30[obj_mask].float().mean() * 100.0
+                            )
+
+                            # 可选：记录当前 batch 里这个物体贡献了多少 grasp，方便排查 batch 分布
+                            stats[f"dir_count_obj_{obj_name}"] = obj_mask.sum().float()
+                # =================================================================
         # =====================================================================###############
 
 
