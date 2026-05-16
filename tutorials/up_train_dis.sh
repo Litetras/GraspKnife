@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 
+
+export IGNORE_OBJECT_CATEGORIES="screwdriver"
+
+
+
+
+
 # Fixed parameters
 export NGPU=1
-export NWORKER=4
+export NWORKER=6 #4
 export NEPOCH=5000 #2000 #这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
-export BATCH=16
-export PRINT_FREQ=10
-export PLOT_FREQ=10
+export BATCH=16 #16
+export PRINT_FREQ=10 
+export PLOT_FREQ=100 #10 
 export SAVE_FREQ=1000
 export DATASET_NAME="objaverse"
 export DATASET_VERSION="v2"
@@ -69,7 +76,7 @@ cd $CODE_DIR && pip install -e . && cd $CODE_DIR/scripts && \
     train.debug=True \
     optimizer.type="ADAMW" \
     optimizer.grad_clip=-1 \
-    optimizer.lr=0.00001 \
+    optimizer.lr=0.00002 \
     discriminator.gripper_name=$GRIPPER_NAME \
     discriminator.topk_ratio=$TOPK_RATIO \
     discriminator.obs_backbone=$BACKBONE \

@@ -18,6 +18,8 @@ import logging
 import os
 import random
 import time
+from collections import defaultdict
+from contextlib import contextmanager
 from typing import Tuple, Union
 
 import h5py
@@ -65,6 +67,134 @@ from grasp_gen.utils.logging_config import get_logger
 
 # Configure logging
 logger = get_logger(__name__)
+
+OBJECT_ID2NAME = {
+    0: "brush",
+    1: "drill",
+    2: "hammer",
+    3: "knife",
+    4: "mug",
+    5: "screwdriver",
+    6: "spoon",
+}
+
+OBJECT_NAME2ID = {v: k for k, v in OBJECT_ID2NAME.items()}
+
+SEMANTIC_REGIONS = {"handle", "head", "blade", "rim", "shaft"}
+SEMANTIC_ORIENTATIONS = {
+    "up",
+    "down",
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "low",
+}
+
+
+class DatasetTimingProfiler:
+    """把临时计时逻辑集中在这里，后续排查完成后可整块删除。"""
+
+    def __init__(self):
+        self.enabled = os.environ.get("GRASPGEN_DATASET_TIMING", "0") == "1"
+        self.log_every = max(
+            1,
+            int(os.environ.get("GRASPGEN_DATASET_TIMING_EVERY", "50")),
+        )
+        self._sample_count = 0
+        self._totals = defaultdict(float)
+
+    @contextmanager
+    def track(self, name):
+        if not self.enabled:
+            yield
+            return
+
+        start = time.perf_counter()
+        try:
+            yield
+        finally:
+            self._totals[name] += time.perf_counter() - start
+
+    def log_if_needed(self, scene_key):
+        if not self.enabled:
+            return
+
+        self._sample_count += 1
+        if self._sample_count % self.log_every != 0:
+            return
+
+        worker_info = torch.utils.data.get_worker_info()
+        worker_id = worker_info.id if worker_info is not None else "main"
+
+        avg_ms = {
+            name: 1000.0 * total / self.log_every
+            for name, total in self._totals.items()
+        }
+        logger.info(
+            "[DATASET TIMING] worker=%s samples=%d scene=%s "
+            "semantic_negative=%.2fms scene_mesh=%.2fms "
+            "discriminator_batch=%.2fms hard_negative=%.2fms collision=%.2fms",
+            worker_id,
+            self._sample_count,
+            scene_key,
+            avg_ms.get("semantic_negative", 0.0),
+            avg_ms.get("scene_mesh", 0.0),
+            avg_ms.get("discriminator_batch", 0.0),
+            avg_ms.get("hard_negative", 0.0),
+            avg_ms.get("collision", 0.0),
+        )
+        self._totals.clear()
+
+
+def parse_object_category_from_scene(scene_key):
+    filename = os.path.basename(scene_key)
+    stem, _ = os.path.splitext(filename)
+    stem = stem.lower()
+
+    # 兼容旧数据集 kitchen_knife_xxx
+    if stem.startswith("kitchen_knife_"):
+        return "knife"
+
+    for obj_name in OBJECT_NAME2ID.keys():
+        if stem.startswith(obj_name + "_"):
+            return obj_name
+
+    return None
+
+
+def parse_object_category(scene_key):
+    object_name = parse_object_category_from_scene(scene_key)
+    if object_name is None:
+        return None, -1
+    return object_name, OBJECT_NAME2ID[object_name]
+
+
+def parse_semantic_scene_key(scene_key):
+    """统一解析新旧两种语义文件命名格式，便于后续复用。"""
+    filename = os.path.basename(scene_key)
+    stem, _ = os.path.splitext(filename)
+    parts = stem.split("_")
+
+    if len(parts) < 4:
+        return None
+
+    last1 = parts[-1].lower()
+    last2 = parts[-2].lower()
+
+    # 旧格式：base_orientation_region，例如 hammer_1_down_handle
+    if last2 in SEMANTIC_ORIENTATIONS and last1 in SEMANTIC_REGIONS:
+        return "_".join(parts[:-2]), last1, last2
+
+    # 新格式：base_Region_Orientation，例如 hammer_1_Handle_Down
+    if last2 in SEMANTIC_REGIONS and last1 in SEMANTIC_ORIENTATIONS:
+        return "_".join(parts[:-2]), last2, last1
+
+    return None
+
+
+
 logger.setLevel(logging.INFO)
 if not logger.handlers:
     handler = logging.StreamHandler()
@@ -459,6 +589,44 @@ class PickDataset(Dataset):
         else:
             logger.info("No filtering; All datapoints are used")
 
+
+        # ================= 新增：忽略指定物体类别 =================
+        # 用环境变量控制，不用改 train.txt / valid.txt
+        # 例如:
+        #   export IGNORE_OBJECT_CATEGORIES="screwdriver"
+        #   export IGNORE_OBJECT_CATEGORIES="screwdriver,brush"
+        ignore_object_categories = os.environ.get("IGNORE_OBJECT_CATEGORIES", "")
+
+        if ignore_object_categories.strip() != "":
+            ignore_object_categories = {
+                x.strip().lower()
+                for x in ignore_object_categories.split(",")
+                if x.strip() != ""
+            }
+
+            init_datapoints = len(self.scenes)
+
+            self.scenes = [
+                scene
+                for scene in self.scenes
+                if parse_object_category_from_scene(scene) not in ignore_object_categories
+            ]
+
+            logger.info(
+                f"[OBJECT FILTER] Ignored categories={sorted(ignore_object_categories)}. "
+                f"Removed {init_datapoints - len(self.scenes)} scenes. "
+                f"Remaining datapoints={len(self.scenes)}"
+            )
+        # =========================================================
+
+
+
+
+
+
+
+
+
         self.overfitting_mode = False
         if len(self.scenes) <= 100:  # If the dataset is very small, we are likely in overfitting/debugging mode. In that case, we can repeat the scenes multiple times to allow for more iterations per epoch, which can help with convergence and debugging.
             #multiplier = 100 if self.split == "train" else 10
@@ -468,6 +636,37 @@ class PickDataset(Dataset):
                 multiplier = 1
             self.scenes = self.scenes * multiplier #self.scenes = [self.scenes[0]] * multiplier
             self.overfitting_mode = True
+
+        unique_scenes = set(self.scenes)
+        self.scene_semantics = {
+            scene: parse_semantic_scene_key(scene) for scene in unique_scenes
+        }
+        self.scene_object_categories = {
+            scene: parse_object_category(scene) for scene in unique_scenes
+        }
+        semantic_scenes_by_base = {}
+        for scene, parsed_scene in self.scene_semantics.items():
+            if parsed_scene is None:
+                continue
+            base_name, _, _ = parsed_scene
+            semantic_scenes_by_base.setdefault(base_name, []).append(scene)
+        self.semantic_negative_scenes = {}
+        for scene, parsed_scene in self.scene_semantics.items():
+            if parsed_scene is None:
+                self.semantic_negative_scenes[scene] = []
+                continue
+            base_name, _, _ = parsed_scene
+            self.semantic_negative_scenes[scene] = [
+                candidate
+                for candidate in semantic_scenes_by_base[base_name]
+                if candidate != scene
+            ]
+
+        # 每个 DataLoader worker 各自维护一份懒加载 mesh 缓存；
+        # 开启 persistent_workers 后，跨 epoch 也能复用已加载并缩放过的 mesh。
+        self._scaled_mesh_cache = {}
+        self.timing_profiler = DatasetTimingProfiler()
+
         self.load_patch = load_patch
         # ================= 新增：读取 JSON 任务文本 =================##############
         self.tasks = tasks  # 保存 yaml 传进来的 tasks (例如 ['up'])
@@ -887,8 +1086,20 @@ class ObjectPickDataset(PickDataset):
         kappa = 1 / np.array(list_minmax).mean()
         return kappa
 
+    def _build_scene_mesh(self, obj_asset_path, obj_scale, obj_pose):
+        cache_key = (obj_asset_path, float(obj_scale))
+        if cache_key not in self._scaled_mesh_cache:
+            mesh = trimesh.load(obj_asset_path)
+            mesh.apply_scale(obj_scale)
+            self._scaled_mesh_cache[cache_key] = mesh
+
+        scene_mesh = self._scaled_mesh_cache[cache_key].copy()
+        scene_mesh.apply_transform(obj_pose)
+        return scene_mesh
+
     def __getitem__(self, idx):
         key = self.scenes[idx]
+        
         if self.preload_dataset:
             from copy import deepcopy as copy
 
@@ -1023,8 +1234,10 @@ class ObjectPickDataset(PickDataset):
         outputs["grasps_ground_truth"] = grasps_ground_truth
 
         if self.load_discriminator_dataset:
-            negative_grasps = object_grasp_data.negative_grasps.copy()
-            if negative_grasps is not None:
+            negative_grasps = object_grasp_data.negative_grasps
+
+            if negative_grasps is not None and len(negative_grasps) > 0:
+                negative_grasps = negative_grasps.copy()
                 negative_grasps = np.array(
                     [T_move_to_pc_mean @ g for g in negative_grasps]
                 )
@@ -1204,10 +1417,6 @@ class ObjectPickDataset(PickDataset):
         else:
             obj_asset_path_rel = obj_asset_path
 
-        try:
-            trimesh.load(obj_asset_path)
-        except:
-            logger.error(f"Error loading object asset path: {obj_asset_path}")
         obj_scale = object_grasp_data.object_scale
         obj_pose = T_move_to_pc_mean
 
@@ -1254,79 +1463,167 @@ class ObjectPickDataset(PickDataset):
 
            
 
-            current_scene = self.scenes[idx] 
+            #current_scene = self.scenes[idx] 
             
-            # ================= 新增：多区域语义负样本构建 =================
-            # 0. 剥离扩展名防雷 (把 .obj 先脱下来)
-            scene_name = current_scene
-            ext = ""
-            if scene_name.endswith('.obj') or scene_name.endswith('.glb'):
-                ext = scene_name[-4:]
-                scene_name = scene_name[:-4] # 此时变成了干净的 "hammer_1_up_head"
+            # # ================= 新增：多区域语义负样本构建 =================
+            # # 0. 剥离扩展名防雷 (把 .obj 先脱下来)
+            # scene_name = current_scene
+            # ext = ""
+            # if scene_name.endswith('.obj') or scene_name.endswith('.glb'):
+            #     ext = scene_name[-4:]
+            #     scene_name = scene_name[:-4] # 此时变成了干净的 "hammer_1_up_head"
 
-            # 1. 提取物体的 base_name (去除方向和部位的后缀)
-            suffixes = [
-                '_up_handle', '_up_head', '_up_blade', 
-                '_down_handle', '_down_head', '_down_blade',
-                '_top_handle', '_top_head', '_top_blade', 
-                '_low_handle', '_low_head', '_low_blade'
-            ]
+            # # 1. 提取物体的 base_name (去除方向和部位的后缀)
+            # suffixes = [
+            #     '_up_handle', '_up_head', '_up_blade', 
+            #     '_down_handle', '_down_head', '_down_blade',
+            #     '_top_handle', '_top_head', '_top_blade', 
+            #     '_low_handle', '_low_head', '_low_blade'
+            # ]
             
-            base_obj_name = scene_name
-            for suf in suffixes:
-                if scene_name.endswith(suf): # 现在判断绝对是 True！
-                    base_obj_name = scene_name[:-len(suf)] # 此时变成了纯纯的 "hammer_1"
-                    break
+            # base_obj_name = scene_name
+            # for suf in suffixes:
+            #     if scene_name.endswith(suf): # 现在判断绝对是 True！
+            #         base_obj_name = scene_name[:-len(suf)] # 此时变成了纯纯的 "hammer_1"
+            #         break
 
-            # 2. 拼接出正确的对应文件，并把 .obj 穿回去！
-            # 这样生成的就是 "hammer_1_up_handle.obj"
-            opposite_keys = [base_obj_name + suf + ext for suf in suffixes if (base_obj_name + suf) != scene_name]
+            # # 2. 拼接出正确的对应文件，并把 .obj 穿回去！
+            # # 这样生成的就是 "hammer_1_up_handle.obj"
+            # opposite_keys = [base_obj_name + suf + ext for suf in suffixes if (base_obj_name + suf) != scene_name]
 
-            # --- 下面是静音读取数据的代码 ---
-            import logging
-            reader_logger = logging.getLogger("grasp_gen.dataset.dataset_utils")
+            # # --- 下面是静音读取数据的代码 ---
+            # import logging
+            # reader_logger = logging.getLogger("grasp_gen.dataset.dataset_utils")
 
-            for opp_key in opposite_keys:
-                prev_level = reader_logger.level
-                reader_logger.setLevel(logging.WARNING) # 静音烦人的 INFO
-                try:
-                    opp_grasp_data = None
-                    if self.preload_dataset and opp_key in self.cache:
-                        opp_grasp_data = self.cache[opp_key][0]
-                    else:
-                        _, opp_grasp_data = load_object_grasp_data(
-                            opp_key,
-                            self.object_root_dir,
-                            self.grasp_root_dir,
-                            self.dataset_version,
-                            load_discriminator_dataset=False, 
-                            gripper_info=self.gripper_info,
-                            onpolicy_dataset_dir=None,
-                            onpolicy_dataset_h5_path=None,
-                            onpolicy_json_path=None,
-                            onpolicy_data_found=False,
-                            grasp_dataset_reader=self.grasp_dataset_reader,
-                        )
+            # for opp_key in opposite_keys:
+            #     prev_level = reader_logger.level
+            #     reader_logger.setLevel(logging.WARNING) # 静音烦人的 INFO
+            #     try:
+            #         opp_grasp_data = None
+            #         if self.preload_dataset and opp_key in self.cache:
+            #             opp_grasp_data = self.cache[opp_key][0]
+            #         else:
+            #             _, opp_grasp_data = load_object_grasp_data(
+            #                 opp_key,
+            #                 self.object_root_dir,
+            #                 self.grasp_root_dir,
+            #                 self.dataset_version,
+            #                 load_discriminator_dataset=False, 
+            #                 gripper_info=self.gripper_info,
+            #                 onpolicy_dataset_dir=None,
+            #                 onpolicy_dataset_h5_path=None,
+            #                 onpolicy_json_path=None,
+            #                 onpolicy_data_found=False,
+            #                 grasp_dataset_reader=self.grasp_dataset_reader,
+            #             )
                         
-                    if opp_grasp_data is not None and opp_grasp_data.positive_grasps is not None:
-                        opp_grasps = opp_grasp_data.positive_grasps.copy()
-                        if len(opp_grasps) > 0:
-                            opp_grasps = np.array([T_move_to_pc_mean @ g for g in opp_grasps])
-                            if self.rotation_augmentation and 'T_aug' in locals():
-                                opp_grasps = np.array([T_aug @ g for g in opp_grasps])
+            #         if opp_grasp_data is not None and opp_grasp_data.positive_grasps is not None:
+            #             opp_grasps = opp_grasp_data.positive_grasps.copy()
+            #             if len(opp_grasps) > 0:
+            #                 opp_grasps = np.array([T_move_to_pc_mean @ g for g in opp_grasps])
+            #                 if self.rotation_augmentation and 'T_aug' in locals():
+            #                     opp_grasps = np.array([T_aug @ g for g in opp_grasps])
                                 
-                            if negative_grasps is None:
-                                negative_grasps = opp_grasps
-                            else:
-                                negative_grasps = np.vstack((negative_grasps, opp_grasps))
+            #                 if negative_grasps is None:
+            #                     negative_grasps = opp_grasps
+            #                 else:
+            #                     negative_grasps = np.vstack((negative_grasps, opp_grasps))
                                 
-                except Exception as e:
-                    pass # 没找到对应部位的抓取很正常，跳过即可
-                finally:
-                    reader_logger.setLevel(prev_level) # 恢复声音
-            # ==============================================================================
+            #     except Exception as e:
+            #         pass # 没找到对应部位的抓取很正常，跳过即可
+            #     finally:
+            #         reader_logger.setLevel(prev_level) # 恢复声音
+            # # ==============================================================================
 
+            with self.timing_profiler.track("semantic_negative"):
+                current_scene = self.scenes[idx]
 
+                # ================= 新增：兼容新旧命名的语义负样本构建 =================
+                # 旧格式: hammer_1_down_handle.obj     => base=hammer_1, region=handle, ori=down
+                # 新格式: hammer_1_Handle_Down.obj     => base=hammer_1, region=handle, ori=down
+                # 思路: 初始化时就建好索引，getitem 里只做查表。
+                parsed_current = self.scene_semantics.get(current_scene)
+
+                if parsed_current is None:
+                    logger.warning(f"[语义负样本] 无法解析当前 scene 名称: {current_scene}")
+                    opposite_keys = []
+                else:
+                    opposite_keys = self.semantic_negative_scenes[current_scene]
+                # ================= 新增：限制每个样本最多读取几个语义负样本文件 =================
+                max_opp_files = 2
+
+                if len(opposite_keys) > max_opp_files:
+                    opposite_keys = random.sample(opposite_keys, max_opp_files)
+                # =====================================================================
+
+                # --- 读取其它语义文件里的 positive_grasps，当作当前任务的 true negative ---
+                import logging
+
+                reader_logger = logging.getLogger("grasp_gen.dataset.dataset_utils")
+
+                num_loaded_opp = 0
+                num_loaded_opp_grasps = 0
+
+                for opp_key in opposite_keys:
+                    prev_level = reader_logger.level
+                    reader_logger.setLevel(logging.WARNING)
+
+                    try:
+                        opp_grasp_data = None
+
+                        if self.preload_dataset and opp_key in self.cache:
+                            opp_grasp_data = self.cache[opp_key][0]
+                        else:
+                            _, opp_grasp_data = load_object_grasp_data(
+                                opp_key,
+                                self.object_root_dir,
+                                self.grasp_root_dir,
+                                self.dataset_version,
+                                load_discriminator_dataset=False,
+                                gripper_info=self.gripper_info,
+                                onpolicy_dataset_dir=None,
+                                onpolicy_dataset_h5_path=None,
+                                onpolicy_json_path=None,
+                                onpolicy_data_found=False,
+                                grasp_dataset_reader=self.grasp_dataset_reader,
+                            )
+
+                        if (
+                            opp_grasp_data is not None
+                            and opp_grasp_data.positive_grasps is not None
+                        ):
+                            opp_grasps = opp_grasp_data.positive_grasps.copy()
+
+                            if len(opp_grasps) > 0:
+                                # 必须和当前点云使用同一个 T_move_to_pc_mean
+                                opp_grasps = np.array(
+                                    [T_move_to_pc_mean @ g for g in opp_grasps]
+                                )
+
+                                # 如果当前样本做了旋转增强，负样本也要做同一个增强
+                                if self.rotation_augmentation and "T_aug" in locals():
+                                    opp_grasps = np.array([T_aug @ g for g in opp_grasps])
+
+                                if negative_grasps is None:
+                                    negative_grasps = opp_grasps
+                                else:
+                                    negative_grasps = np.vstack((negative_grasps, opp_grasps))
+
+                                num_loaded_opp += 1
+                                num_loaded_opp_grasps += len(opp_grasps)
+
+                    except Exception as e:
+                        logger.warning(f"[语义负样本] 读取失败 opp_key={opp_key}, err={repr(e)}")
+                    finally:
+                        reader_logger.setLevel(prev_level)
+
+            # logger.info(
+            #     f"[语义负样本] scene={current_scene}, "
+            #     f"loaded_files={num_loaded_opp}/{len(opposite_keys)}, "
+            #     f"loaded_grasps={num_loaded_opp_grasps}, "
+            #     f"final_negative_grasps={None if negative_grasps is None else len(negative_grasps)}"
+            # )
+            # =====================================================================
 
 
 
@@ -1419,16 +1716,36 @@ class ObjectPickDataset(PickDataset):
 
 
 
-            batch_data, scene_mesh = load_discriminator_batch_with_stratified_sampling(
-                self.num_grasps_per_object,
-                positive_grasps,
-                self.discriminator_ratio,
-                scene_info,
-                self.gripper_collision_mesh,
-                negative_grasps,
-                positive_grasps_onpolicy=positive_grasps_onpolicy,
-                negative_grasps_onpolicy=negative_grasps_onpolicy,
-            )
+            with self.timing_profiler.track("scene_mesh"):
+                scene_mesh = self._build_scene_mesh(obj_asset_path, obj_scale, obj_pose)
+
+            with self.timing_profiler.track("discriminator_batch"):
+                batch_data, scene_mesh = load_discriminator_batch_with_stratified_sampling(
+                    self.num_grasps_per_object,
+                    positive_grasps,
+                    self.discriminator_ratio,
+                    scene_info,
+                    self.gripper_collision_mesh,
+                    negative_grasps,
+                    positive_grasps_onpolicy=positive_grasps_onpolicy,
+                    negative_grasps_onpolicy=negative_grasps_onpolicy,
+                    scene_mesh=scene_mesh,
+                    timing_profiler=self.timing_profiler,
+                )
+
+            # ================= 新增：给当前 batch 加物体类别 id =================
+            object_name, object_id = self.scene_object_categories[self.scenes[idx]]
+
+            if object_id >= 0:
+                num_sampled_grasps = batch_data["grasps"].shape[0]
+                batch_data["object_ids"] = torch.full(
+                    (num_sampled_grasps, 1),
+                    object_id,
+                    dtype=torch.long,
+                )
+            else:
+                logger.warning(f"[OBJECT METRIC] 无法解析物体类别: {self.scenes[idx]}")
+            # ===============================================================
 
             outputs.update(batch_data)
 
@@ -1532,20 +1849,39 @@ class ObjectPickDataset(PickDataset):
         
 
         else:
-            # 动态智能解析：直接从文件名中提取部位和方向组合成自然语言
-            # 比如 "hammer_27_up_handle" 会变成 "up handle"
-            direction = "up" if "_up_" in obj_name else "down"
-            
-            if "_handle" in obj_name:
-                part = "handle"
-            elif "_head" in obj_name:
-                part = "head"
-            elif "_blade" in obj_name:
-                part = "blade"
+            parsed_text = self.scene_semantics[self.scenes[idx]]
+
+            if parsed_text is not None:
+                _, part, direction = parsed_text
+                outputs["text"] = f"{direction} {part}".strip()
             else:
-                part = "" # 兼容你之前只有 up/down 的老数据
-                
-            outputs["text"] = f"{direction} {part}".strip()
+                outputs["text"] = "grasp object"
+                logger.warning(f"[TEXT DEBUG] 无法从文件名解析任务文本: {self.scenes[idx]}")
+        
+        # ================= 新增：给 generator/discriminator 都补 object_ids =================
+        if "object_ids" not in outputs:
+            object_name, object_id = self.scene_object_categories[self.scenes[idx]]
+
+            if object_id >= 0:
+                if isinstance(outputs["grasps"], torch.Tensor):
+                    num_sampled_grasps = outputs["grasps"].shape[0]
+                elif isinstance(outputs["grasps"], list):
+                    num_sampled_grasps = outputs["grasps"][0].shape[0]
+                else:
+                    num_sampled_grasps = len(outputs["grasps"])
+
+                outputs["object_ids"] = torch.full(
+                    (num_sampled_grasps, 1),
+                    object_id,
+                    dtype=torch.long,
+                )
+            else:
+                logger.warning(f"[OBJECT METRIC] 无法解析物体类别: {self.scenes[idx]}")
+        # =====================================================================
+        
+        
+        
+        self.timing_profiler.log_if_needed(self.scenes[idx])
         return outputs
 
 
@@ -1554,6 +1890,7 @@ def generate_negative_hardnegatives(
     grasps_starter: np.ndarray,
     scene_mesh: trimesh.base.Trimesh,
     gripper_mesh: trimesh.base.Trimesh,
+    timing_profiler: DatasetTimingProfiler = None,
 ) -> Union[None, np.ndarray]:
     """Generate hard negative grasp examples by perturbing positive grasps to create collisions.
 
@@ -1635,7 +1972,11 @@ def generate_negative_hardnegatives(
         ]
     )
 
-    collision = check_collision(scene_mesh, gripper_mesh, neg_grasp_candidates)
+    if timing_profiler is None:
+        collision = check_collision(scene_mesh, gripper_mesh, neg_grasp_candidates)
+    else:
+        with timing_profiler.track("collision"):
+            collision = check_collision(scene_mesh, gripper_mesh, neg_grasp_candidates)
     neg_grasp_hn = neg_grasp_candidates[collision]
     # print(f"Hardnegatives: {len(neg_grasp_hn)} out of {len(neg_grasp_candidates)} grasps are colliding")
 
@@ -1694,6 +2035,8 @@ def load_discriminator_batch_with_stratified_sampling(
     grasps_negative: np.ndarray = None,
     positive_grasps_onpolicy: np.ndarray = None,
     negative_grasps_onpolicy: np.ndarray = None,
+    scene_mesh: trimesh.base.Trimesh = None,
+    timing_profiler: DatasetTimingProfiler = None,
 ):
 
     N = num_grasps_per_batch
@@ -1734,13 +2077,14 @@ def load_discriminator_batch_with_stratified_sampling(
         num_pos_true_grasps += num_neg_true_grasps
         num_neg_true_grasps = 0
 
-    obj_scale = scene_info["scales"][0]
-    obj_asset_path = scene_info["assets"][0]
-    obj_pose = scene_info["poses"][0]
+    if scene_mesh is None:
+        obj_scale = scene_info["scales"][0]
+        obj_asset_path = scene_info["assets"][0]
+        obj_pose = scene_info["poses"][0]
 
-    scene_mesh = trimesh.load(obj_asset_path)
-    scene_mesh.apply_scale(obj_scale)
-    scene_mesh.apply_transform(obj_pose)
+        scene_mesh = trimesh.load(obj_asset_path)
+        scene_mesh.apply_scale(obj_scale)
+        scene_mesh.apply_transform(obj_pose)
 
     grasps, grasp_ids = None, None
 
@@ -1824,9 +2168,19 @@ def load_discriminator_batch_with_stratified_sampling(
         grasp_ids = torch.vstack([grasp_ids, grasps_id_neg_true]).int()
 
     # Step 2 - Add the hard negatives
-    grasps_neg_hncolliding = generate_negative_hardnegatives(
-        num_neg_hncolliding, grasps_positive, scene_mesh, gripper_mesh
-    )
+    if timing_profiler is None:
+        grasps_neg_hncolliding = generate_negative_hardnegatives(
+            num_neg_hncolliding, grasps_positive, scene_mesh, gripper_mesh
+        )
+    else:
+        with timing_profiler.track("hard_negative"):
+            grasps_neg_hncolliding = generate_negative_hardnegatives(
+                num_neg_hncolliding,
+                grasps_positive,
+                scene_mesh,
+                gripper_mesh,
+                timing_profiler=timing_profiler,
+            )
 
     if grasps_neg_hncolliding is not None:
 
