@@ -26,7 +26,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from grasp_gen.dataset.dataset import MAPPING_ID2NAME
+from grasp_gen.dataset.dataset import MAPPING_ID2NAME, OBJECT_ID2NAME
 from grasp_gen.utils.math_utils import matrix_to_rt
 from grasp_gen.models.model_utils import (
     PointNetPlusPlus,
@@ -384,6 +384,25 @@ class GraspGenDiscriminator(nn.Module):
             score = pred.squeeze(1).detach().cpu().numpy()
             ap = average_precision_score(labels, score)
             stats["ap"] = torch.tensor(ap).to(device)
+
+            # ================= 新增：按物体类别统计二分类准确率 =================
+            if "object_ids" in data:
+                object_ids = data["object_ids"]
+                if type(object_ids) == list:
+                    object_ids = torch.cat(object_ids)
+
+                object_ids = object_ids.reshape(-1).long().detach().cpu().numpy()
+                for obj_id, obj_name in OBJECT_ID2NAME.items():
+                    obj_mask = object_ids == obj_id
+                    if obj_mask.sum() > 0:
+                        labels_obj = labels[obj_mask]
+                        score_obj = score[obj_mask]
+                        pred_obj = (score_obj > 0.5).astype(np.float32)
+                        acc_obj = (pred_obj == labels_obj).mean() * 100.0
+                        stats[f"acc_obj_{obj_name}"] = torch.tensor(acc_obj).to(
+                            device
+                        )
+            # =================================================================
 
             if "grasp_ids" in data:
                 grasp_ids = data["grasp_ids"]

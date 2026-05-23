@@ -275,6 +275,26 @@ def train_one_epoch(
     return global_step
 
 
+def add_to_dict_with_count(values, counts, key, val):
+    add_to_dict(values, key, val)
+    # 验证集里有些指标不是每个 batch 都会出现，例如 acc_obj_brush。
+    # 每个指标单独记录出现次数，避免最后除以全部 valid batch 把数值压低。
+    counts[key] = counts.get(key, torch.tensor(0.0, device=val.device))
+    counts[key] = counts[key] + torch.tensor(1.0, device=val.device)
+
+
+def write_scalar_average(writer, key, value, count, step, rank, use_ddp):
+    # DDP 时 value 和 count 都同步 reduce，稀疏指标的平均值才是正确的。
+    if use_ddp:
+        dist.reduce(value, 0)
+        dist.reduce(count, 0)
+
+    if rank == 0:
+        val = torch.div(value, torch.clamp(count, min=1.0))
+        if not torch.isnan(val) and not torch.isinf(val):
+            writer.add_scalar(key, val.item(), step)
+
+
 def eval_one_epoch(loader, model, writer, epoch, global_step, cfg):
     global handler_called
     rank = 0
@@ -292,6 +312,7 @@ def eval_one_epoch(loader, model, writer, epoch, global_step, cfg):
 
     total = {}
     loss_dict_epoch, stats_epoch, stats_recon_epoch = {}, {}, {}
+    loss_count_epoch, stats_count_epoch, stats_recon_count_epoch = {}, {}, {}
     start = time()
     outputs = {}
     for i, data in enumerate(loader):
@@ -318,14 +339,21 @@ def eval_one_epoch(loader, model, writer, epoch, global_step, cfg):
         start = time()
 
         for key in losses:
-            add_to_dict(loss_dict_epoch, key, losses[key][1])
+            add_to_dict_with_count(
+                loss_dict_epoch, loss_count_epoch, key, losses[key][1]
+            )
 
         for key in stats:
-            add_to_dict(stats_epoch, key, stats[key])
+            add_to_dict_with_count(stats_epoch, stats_count_epoch, key, stats[key])
 
         if cfg.train.model_name == "diffusion":
             for key in stats_recon:
-                add_to_dict(stats_recon_epoch, key, stats_recon[key])
+                add_to_dict_with_count(
+                    stats_recon_epoch,
+                    stats_recon_count_epoch,
+                    key,
+                    stats_recon[key],
+                )
 
         log_time += time() - start
         start = time()
@@ -354,30 +382,36 @@ def eval_one_epoch(loader, model, writer, epoch, global_step, cfg):
             dist.reduce(total[key], 0)
 
     for key, val in loss_dict_epoch.items():
-        write_scalar_ddp(
-            writer, f"valid/loss/{key}", val, global_step, rank, total["steps"], use_ddp
+        write_scalar_average(
+            writer,
+            f"valid/loss/{key}",
+            val,
+            loss_count_epoch[key],
+            global_step,
+            rank,
+            use_ddp,
         )
 
     for key, val in stats_epoch.items():
-        write_scalar_ddp(
+        write_scalar_average(
             writer,
             f"valid/metric/noise/{key}",
             val,
+            stats_count_epoch[key],
             global_step,
             rank,
-            total["steps"],
             use_ddp,
         )
 
     if cfg.train.model_name == "diffusion":
         for key, val in stats_recon_epoch.items():
-            write_scalar_ddp(
+            write_scalar_average(
                 writer,
                 f"valid/metric/reconstruction/{key}",
                 val,
+                stats_recon_count_epoch[key],
                 global_step,
                 rank,
-                total["steps"],
                 use_ddp,
             )
 

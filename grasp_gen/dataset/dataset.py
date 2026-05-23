@@ -18,6 +18,8 @@ import logging
 import os
 import random
 import time
+from collections import defaultdict
+from contextlib import contextmanager, nullcontext
 from typing import Tuple, Union
 
 import h5py
@@ -72,6 +74,133 @@ if not logger.handlers:
         logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     )
     logger.addHandler(handler)
+
+
+OBJECT_ID2NAME = {
+    0: "brush",
+    1: "drill",
+    2: "hammer",
+    3: "knife",
+    4: "mug",
+    5: "screwdriver",
+    6: "spoon",
+}
+
+OBJECT_NAME2ID = {v: k for k, v in OBJECT_ID2NAME.items()}
+
+SEMANTIC_REGIONS = {"handle", "head", "blade", "rim", "shaft"}
+SEMANTIC_ORIENTATIONS = {
+    "up",
+    "down",
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "low",
+}
+
+
+class DatasetTimingProfiler:
+    """用环境变量打开的临时数据加载计时器，默认完全静默。"""
+
+    def __init__(self):
+        self.enabled = os.environ.get("GRASPGEN_DATASET_TIMING", "0") == "1"
+        self.log_every = max(
+            1,
+            int(os.environ.get("GRASPGEN_DATASET_TIMING_EVERY", "50")),
+        )
+        self._sample_count = 0
+        self._totals = defaultdict(float)
+
+    @contextmanager
+    def track(self, name):
+        if not self.enabled:
+            yield
+            return
+
+        start = time.perf_counter()
+        try:
+            yield
+        finally:
+            self._totals[name] += time.perf_counter() - start
+
+    def log_if_needed(self, scene_key):
+        if not self.enabled:
+            return
+
+        self._sample_count += 1
+        if self._sample_count % self.log_every != 0:
+            return
+
+        worker_info = torch.utils.data.get_worker_info()
+        worker_id = worker_info.id if worker_info is not None else "main"
+        avg_ms = {
+            name: 1000.0 * total / self.log_every
+            for name, total in self._totals.items()
+        }
+        logger.info(
+            "[DATASET TIMING] worker=%s samples=%d scene=%s "
+            "scene_mesh_load_scale=%.2fms scene_mesh_copy=%.2fms "
+            "scene_mesh_transform=%.2fms hard_negative_candidates=%.2fms "
+            "collision_setup=%.2fms collision_query=%.2fms",
+            worker_id,
+            self._sample_count,
+            scene_key,
+            avg_ms.get("scene_mesh_load_scale", 0.0),
+            avg_ms.get("scene_mesh_copy", 0.0),
+            avg_ms.get("scene_mesh_transform", 0.0),
+            avg_ms.get("hard_negative_candidates", 0.0),
+            avg_ms.get("collision_setup", 0.0),
+            avg_ms.get("collision_query", 0.0),
+        )
+        self._totals.clear()
+
+
+def parse_object_category_from_scene(scene_key):
+    filename = os.path.basename(scene_key)
+    stem, _ = os.path.splitext(filename)
+    stem = stem.lower()
+
+    # 兼容旧数据集 kitchen_knife_xxx。
+    if stem.startswith("kitchen_knife_"):
+        return "knife"
+
+    for obj_name in OBJECT_NAME2ID.keys():
+        if stem.startswith(obj_name + "_"):
+            return obj_name
+
+    return None
+
+
+def parse_object_category(scene_key):
+    object_name = parse_object_category_from_scene(scene_key)
+    if object_name is None:
+        return None, -1
+    return object_name, OBJECT_NAME2ID[object_name]
+
+
+def parse_semantic_scene_key(scene_key):
+    """统一解析新旧两种语义文件命名格式。"""
+    filename = os.path.basename(scene_key)
+    stem, _ = os.path.splitext(filename)
+    parts = stem.split("_")
+
+    if len(parts) < 4:
+        return None
+
+    last1 = parts[-1].lower()
+    last2 = parts[-2].lower()
+
+    # 旧格式：base_orientation_region，例如 hammer_1_down_handle。
+    if last2 in SEMANTIC_ORIENTATIONS and last1 in SEMANTIC_REGIONS:
+        return "_".join(parts[:-2]), last1, last2
+
+    # 新格式：base_Region_Orientation，例如 hammer_1_Handle_Down。
+    if last2 in SEMANTIC_REGIONS and last1 in SEMANTIC_ORIENTATIONS:
+        return "_".join(parts[:-2]), last2, last1
+
+    return None
 
 
 def get_cache_path(cache_dir: str, root_dir: str) -> str:
@@ -459,6 +588,32 @@ class PickDataset(Dataset):
         else:
             logger.info("No filtering; All datapoints are used")
 
+        # ================= 新增：按物体类别过滤数据集 =================
+        # 用环境变量控制，不改 train.txt / valid.txt。
+        # 例如：IGNORE_OBJECT_CATEGORIES="screwdriver,brush"
+        ignore_object_categories = os.environ.get("IGNORE_OBJECT_CATEGORIES", "")
+        if ignore_object_categories.strip() != "":
+            ignore_object_categories = {
+                x.strip().lower()
+                for x in ignore_object_categories.split(",")
+                if x.strip() != ""
+            }
+
+            init_datapoints = len(self.scenes)
+            self.scenes = [
+                scene
+                for scene in self.scenes
+                if parse_object_category_from_scene(scene)
+                not in ignore_object_categories
+            ]
+
+            logger.info(
+                f"[OBJECT FILTER] Ignored categories={sorted(ignore_object_categories)}. "
+                f"Removed {init_datapoints - len(self.scenes)} scenes. "
+                f"Remaining datapoints={len(self.scenes)}"
+            )
+        # =========================================================
+
         self.overfitting_mode = False
         if len(self.scenes) <= 100:  # If the dataset is very small, we are likely in overfitting/debugging mode. In that case, we can repeat the scenes multiple times to allow for more iterations per epoch, which can help with convergence and debugging.
             #multiplier = 100 if self.split == "train" else 10
@@ -468,6 +623,38 @@ class PickDataset(Dataset):
                 multiplier = 1
             self.scenes = self.scenes * multiplier #self.scenes = [self.scenes[0]] * multiplier
             self.overfitting_mode = True
+
+        unique_scenes = set(self.scenes)
+        self.scene_semantics = {
+            scene: parse_semantic_scene_key(scene) for scene in unique_scenes
+        }
+        self.scene_object_categories = {
+            scene: parse_object_category(scene) for scene in unique_scenes
+        }
+        semantic_scenes_by_base = {}
+        for scene, parsed_scene in self.scene_semantics.items():
+            if parsed_scene is None:
+                continue
+            base_name, _, _ = parsed_scene
+            semantic_scenes_by_base.setdefault(base_name, []).append(scene)
+
+        self.semantic_negative_scenes = {}
+        for scene, parsed_scene in self.scene_semantics.items():
+            if parsed_scene is None:
+                self.semantic_negative_scenes[scene] = []
+                continue
+            base_name, _, _ = parsed_scene
+            self.semantic_negative_scenes[scene] = [
+                candidate
+                for candidate in semantic_scenes_by_base[base_name]
+                if candidate != scene
+            ]
+
+        # 每个 DataLoader worker 各自维护一份懒加载 mesh 缓存；
+        # persistent_workers 打开时，跨 epoch 也能复用已加载并缩放过的 mesh。
+        self._scaled_mesh_cache = {}
+        self.timing_profiler = DatasetTimingProfiler()
+
         self.load_patch = load_patch
         # ================= 新增：读取 JSON 任务文本 =================##############
         self.tasks = tasks  # 保存 yaml 传进来的 tasks (例如 ['up'])
@@ -887,6 +1074,20 @@ class ObjectPickDataset(PickDataset):
         kappa = 1 / np.array(list_minmax).mean()
         return kappa
 
+    def _build_scene_mesh(self, obj_asset_path, obj_scale, obj_pose):
+        cache_key = (obj_asset_path, float(obj_scale))
+        if cache_key not in self._scaled_mesh_cache:
+            with self.timing_profiler.track("scene_mesh_load_scale"):
+                mesh = trimesh.load(obj_asset_path)
+                mesh.apply_scale(obj_scale)
+            self._scaled_mesh_cache[cache_key] = mesh
+
+        with self.timing_profiler.track("scene_mesh_copy"):
+            scene_mesh = self._scaled_mesh_cache[cache_key].copy()
+        with self.timing_profiler.track("scene_mesh_transform"):
+            scene_mesh.apply_transform(obj_pose)
+        return scene_mesh
+
     def __getitem__(self, idx):
         key = self.scenes[idx]
         if self.preload_dataset:
@@ -1204,10 +1405,6 @@ class ObjectPickDataset(PickDataset):
         else:
             obj_asset_path_rel = obj_asset_path
 
-        try:
-            trimesh.load(obj_asset_path)
-        except:
-            logger.error(f"Error loading object asset path: {obj_asset_path}")
         obj_scale = object_grasp_data.object_scale
         obj_pose = T_move_to_pc_mean
 
@@ -1254,41 +1451,25 @@ class ObjectPickDataset(PickDataset):
 
            
 
-            current_scene = self.scenes[idx] 
-            
-            # ================= 新增：多区域语义负样本构建 =================
-            # 0. 剥离扩展名防雷 (把 .obj 先脱下来)
-            scene_name = current_scene
-            ext = ""
-            if scene_name.endswith('.obj') or scene_name.endswith('.glb'):
-                ext = scene_name[-4:]
-                scene_name = scene_name[:-4] # 此时变成了干净的 "hammer_1_up_head"
+            current_scene = self.scenes[idx]
 
-            # 1. 提取物体的 base_name (去除方向和部位的后缀)
-            suffixes = [
-                '_up_handle', '_up_head', '_up_blade', 
-                '_down_handle', '_down_head', '_down_blade',
-                '_top_handle', '_top_head', '_top_blade', 
-                '_low_handle', '_low_head', '_low_blade'
-            ]
-            
-            base_obj_name = scene_name
-            for suf in suffixes:
-                if scene_name.endswith(suf): # 现在判断绝对是 True！
-                    base_obj_name = scene_name[:-len(suf)] # 此时变成了纯纯的 "hammer_1"
-                    break
+            # ================= 新增：兼容新旧命名的语义负样本构建 =================
+            parsed_current = self.scene_semantics.get(current_scene)
+            if parsed_current is None:
+                logger.warning(f"[语义负样本] 无法解析当前 scene 名称: {current_scene}")
+                opposite_keys = []
+            else:
+                opposite_keys = self.semantic_negative_scenes[current_scene]
 
-            # 2. 拼接出正确的对应文件，并把 .obj 穿回去！
-            # 这样生成的就是 "hammer_1_up_handle.obj"
-            opposite_keys = [base_obj_name + suf + ext for suf in suffixes if (base_obj_name + suf) != scene_name]
+            # 限制每个样本最多读几个语义负样本文件，避免大数据集训练时 I/O 被拖慢。
+            max_opp_files = 2
+            if len(opposite_keys) > max_opp_files:
+                opposite_keys = random.sample(opposite_keys, max_opp_files)
 
-            # --- 下面是静音读取数据的代码 ---
-            import logging
             reader_logger = logging.getLogger("grasp_gen.dataset.dataset_utils")
-
             for opp_key in opposite_keys:
                 prev_level = reader_logger.level
-                reader_logger.setLevel(logging.WARNING) # 静音烦人的 INFO
+                reader_logger.setLevel(logging.WARNING)
                 try:
                     opp_grasp_data = None
                     if self.preload_dataset and opp_key in self.cache:
@@ -1299,7 +1480,7 @@ class ObjectPickDataset(PickDataset):
                             self.object_root_dir,
                             self.grasp_root_dir,
                             self.dataset_version,
-                            load_discriminator_dataset=False, 
+                            load_discriminator_dataset=False,
                             gripper_info=self.gripper_info,
                             onpolicy_dataset_dir=None,
                             onpolicy_dataset_h5_path=None,
@@ -1307,118 +1488,35 @@ class ObjectPickDataset(PickDataset):
                             onpolicy_data_found=False,
                             grasp_dataset_reader=self.grasp_dataset_reader,
                         )
-                        
-                    if opp_grasp_data is not None and opp_grasp_data.positive_grasps is not None:
+
+                    if (
+                        opp_grasp_data is not None
+                        and opp_grasp_data.positive_grasps is not None
+                    ):
                         opp_grasps = opp_grasp_data.positive_grasps.copy()
                         if len(opp_grasps) > 0:
-                            opp_grasps = np.array([T_move_to_pc_mean @ g for g in opp_grasps])
-                            if self.rotation_augmentation and 'T_aug' in locals():
+                            # 必须和当前点云使用同一个坐标变换。
+                            opp_grasps = np.array(
+                                [T_move_to_pc_mean @ g for g in opp_grasps]
+                            )
+                            if self.rotation_augmentation and "T_aug" in locals():
                                 opp_grasps = np.array([T_aug @ g for g in opp_grasps])
-                                
+
                             if negative_grasps is None:
                                 negative_grasps = opp_grasps
                             else:
-                                negative_grasps = np.vstack((negative_grasps, opp_grasps))
-                                
+                                negative_grasps = np.vstack(
+                                    (negative_grasps, opp_grasps)
+                                )
                 except Exception as e:
-                    pass # 没找到对应部位的抓取很正常，跳过即可
+                    logger.warning(
+                        f"[语义负样本] 读取失败 opp_key={opp_key}, err={repr(e)}"
+                    )
                 finally:
-                    reader_logger.setLevel(prev_level) # 恢复声音
-            # ==============================================================================
+                    reader_logger.setLevel(prev_level)
+            # =====================================================================
 
-
-
-
-
-
-
-
-#####################################################################################
-            # current_scene = self.scenes[idx] 
-            #print(f"====== 【DEBUG】真实的场景名: '{current_scene}' ======")
-
-# ================= 新增：跨文件主动读取反方向数据作为语义负样本 =================
-            # 1. 自动推断反方向的 key（根据你的命名规则，将 up 和 down 互换）
-            # opposite_key = None
-            # if "_up" in current_scene:
-            #     opposite_key = current_scene.replace("_up", "_down")
-            # elif "_top" in current_scene:
-            #     opposite_key = current_scene.replace("_top", "_low")
-            # elif "_down" in current_scene:
-            #     opposite_key = current_scene.replace("_down", "_up")
-            # elif "_low" in current_scene:
-            #     opposite_key = current_scene.replace("_low", "_top")
-
-
-            # # 2. 如果成功推断出反方向文件名，则去加载它的数据
-            # # if opposite_key is not None:
-            # #     try:
-            # #         # 调用本文件头部的 load_object_grasp_data 函数，读取反方向数据
-            # #         _, opp_grasp_data = load_object_grasp_data(
-            # #             opposite_key,
-            # #             self.object_root_dir,
-            # #             self.grasp_root_dir,
-            # #             self.dataset_version,
-            # #             load_discriminator_dataset=False, # 我们只需要它里的正样本作为我们的负样本
-            # #             gripper_info=self.gripper_info,
-            # #             onpolicy_dataset_dir=None,
-            # #             onpolicy_dataset_h5_path=None,
-            # #             onpolicy_json_path=None,
-            # #             onpolicy_data_found=False,
-            # #             grasp_dataset_reader=self.grasp_dataset_reader,
-            # #         )
-                    
-            # # 2. 如果成功推断出反方向文件名，则去加载它的数据
-            # if opposite_key is not None:
-            #     try:
-            #         opp_grasp_data = None
-            #         # ================= 性能优化：优先从内存 Cache 极速读取 =================
-            #         if self.preload_dataset and opposite_key in self.cache:
-            #             # self.cache 里存的是 (object_grasp_data, rendering_output) 元组
-            #             # 我们只需要提取第一个元素
-            #             opp_grasp_data = self.cache[opposite_key][0]
-            #         else:
-            #             # 如果没开 cache 或者 cache 里刚好没有，再去老老实实读硬盘
-            #             _, opp_grasp_data = load_object_grasp_data(
-            #                 opposite_key,
-            #                 self.object_root_dir,
-            #                 self.grasp_root_dir,
-            #                 self.dataset_version,
-            #                 load_discriminator_dataset=False, # 我们只需要它里的正样本作为我们的负样本
-            #                 gripper_info=self.gripper_info,
-            #                 onpolicy_dataset_dir=None,
-            #                 onpolicy_dataset_h5_path=None,
-            #                 onpolicy_json_path=None,
-            #                 onpolicy_data_found=False,
-            #                 grasp_dataset_reader=self.grasp_dataset_reader,
-            #             )
-            #         # =========================================================================
-            #         if opp_grasp_data is not None and opp_grasp_data.positive_grasps is not None:
-            #             opp_grasps = opp_grasp_data.positive_grasps.copy()
-            #             if len(opp_grasps) > 0:
-            #                 # 3. 对齐坐标系：这一步极其重要！必须应用和当前点云一模一样的变换！
-            #                 # 变换1: 将抓取移动到当前点云的平均中心
-            #                 opp_grasps = np.array([T_move_to_pc_mean @ g for g in opp_grasps])
-                            
-            #                 # 变换2: 如果开启了旋转数据增强，应用当前的随机旋转矩阵 T_aug
-            #                 if self.rotation_augmentation and 'T_aug' in locals():
-            #                     opp_grasps = np.array([T_aug @ g for g in opp_grasps])
-                                
-            #                 # 4. 将反向抓取合并到当前场景的 negative_grasps 中
-            #                 if negative_grasps is None:
-            #                     negative_grasps = opp_grasps
-            #                 else:
-            #                     negative_grasps = np.vstack((negative_grasps, opp_grasps))
-                                
-            #     except Exception as e:
-            #         logger.warning(f"[语义负样本] 无法读取反方向数据 {opposite_key}: {e}")
-            # # ==============================================================================
-################################################################################################################
-
-
-
-
-
+            scene_mesh = self._build_scene_mesh(obj_asset_path, obj_scale, obj_pose)
             batch_data, scene_mesh = load_discriminator_batch_with_stratified_sampling(
                 self.num_grasps_per_object,
                 positive_grasps,
@@ -1428,7 +1526,24 @@ class ObjectPickDataset(PickDataset):
                 negative_grasps,
                 positive_grasps_onpolicy=positive_grasps_onpolicy,
                 negative_grasps_onpolicy=negative_grasps_onpolicy,
+                scene_mesh=scene_mesh,
+                timing_profiler=self.timing_profiler,
             )
+
+            # ================= 新增：给当前 batch 加物体类别 id =================
+            object_name, object_id = self.scene_object_categories.get(
+                self.scenes[idx], (None, -1)
+            )
+            if object_id >= 0:
+                num_sampled_grasps = batch_data["grasps"].shape[0]
+                batch_data["object_ids"] = torch.full(
+                    (num_sampled_grasps, 1),
+                    object_id,
+                    dtype=torch.long,
+                )
+            else:
+                logger.warning(f"[OBJECT METRIC] 无法解析物体类别: {self.scenes[idx]}")
+            # ===============================================================
 
             outputs.update(batch_data)
 
@@ -1516,7 +1631,27 @@ class ObjectPickDataset(PickDataset):
         if len(outputs["points"].shape) == 2:
             outputs["points"] = outputs["points"].unsqueeze(0)
 
+        # ================= 新增：给 generator/discriminator 都补 object_ids =================
+        if "object_ids" not in outputs:
+            object_name, object_id = self.scene_object_categories.get(
+                self.scenes[idx], (None, -1)
+            )
+            if object_id >= 0:
+                if isinstance(outputs["grasps"], torch.Tensor):
+                    num_sampled_grasps = outputs["grasps"].shape[0]
+                elif isinstance(outputs["grasps"], list):
+                    num_sampled_grasps = outputs["grasps"][0].shape[0]
+                else:
+                    num_sampled_grasps = len(outputs["grasps"])
 
+                outputs["object_ids"] = torch.full(
+                    (num_sampled_grasps, 1),
+                    object_id,
+                    dtype=torch.long,
+                )
+            else:
+                logger.warning(f"[OBJECT METRIC] 无法解析物体类别: {self.scenes[idx]}")
+        # =====================================================================
 
 
 
@@ -1554,11 +1689,22 @@ class ObjectPickDataset(PickDataset):
         obj_name = os.path.basename(self.scenes[idx]).split('.')[0].lower()
         
         # 2. 提取死板的部位和方向标签 (给老教师 CLIP 听的 strict_text)
-        direction = "up" if "_up_" in obj_name else ("down" if "_down_" in obj_name else "")
-        part = ""
-        if "_handle" in obj_name: part = "handle"
-        elif "_head" in obj_name: part = "head"
-        elif "_blade" in obj_name: part = "blade"
+        parsed_text = self.scene_semantics.get(self.scenes[idx])
+        if parsed_text is not None:
+            _, part, direction = parsed_text
+        else:
+            direction = (
+                "up"
+                if "_up_" in obj_name or obj_name.endswith("_up")
+                else ("down" if "_down_" in obj_name or obj_name.endswith("_down") else "")
+            )
+            part = ""
+            if "_handle" in obj_name:
+                part = "handle"
+            elif "_head" in obj_name:
+                part = "head"
+            elif "_blade" in obj_name:
+                part = "blade"
             
         strict_text = f"{direction} {part}".strip()
         outputs["strict_text"] = strict_text  # 存入 CLIP 的专属锚点
@@ -1612,9 +1758,7 @@ class ObjectPickDataset(PickDataset):
         outputs["natural_text"] = random.choice(natural_templates)
         # ===================================================================
 
-
-
-
+        self.timing_profiler.log_if_needed(self.scenes[idx])
         return outputs
 
 
@@ -1629,6 +1773,7 @@ def generate_negative_hardnegatives(
     grasps_starter: np.ndarray,
     scene_mesh: trimesh.base.Trimesh,
     gripper_mesh: trimesh.base.Trimesh,
+    timing_profiler: DatasetTimingProfiler = None,
 ) -> Union[None, np.ndarray]:
     """Generate hard negative grasp examples by perturbing positive grasps to create collisions.
 
@@ -1653,64 +1798,77 @@ def generate_negative_hardnegatives(
     if num_grasps == 0:
         return
 
-    upsample_factor = 0.70  # NOTE: This number is specifically tuned to ensure there are enough colliding grasps to choose from in the next step, which still being minimized (as it introduces delays)
-    num_grasps_upsampled = int(upsample_factor * num_grasps)
-    neg_grasps_src = grasps_starter[
-        np.random.randint(0, len(grasps_starter), num_grasps_upsampled)
-    ]
-    # Add grasps by perturbing a little bit, the orientation.  Make sure these collide
-    lims = [-np.pi / 6, np.pi / 6]
-    neg_grasps_candidate_set_1 = np.array(
-        [
-            tra.euler_matrix(rot[0], rot[1], rot[2]) @ g
-            for rot, g in zip(
-                np.random.uniform(lims[0], lims[1], size=(num_grasps_upsampled, 3)),
-                neg_grasps_src,
-            )
-        ]
+    candidate_ctx = (
+        timing_profiler.track("hard_negative_candidates")
+        if timing_profiler
+        else nullcontext()
     )
+    with candidate_ctx:
+        upsample_factor = 0.70  # Tuned to provide enough colliding grasps with limited delay.
+        num_grasps_upsampled = int(upsample_factor * num_grasps)
+        neg_grasps_src = grasps_starter[
+            np.random.randint(0, len(grasps_starter), num_grasps_upsampled)
+        ]
+        # Add grasps by perturbing a little bit, the orientation.  Make sure these collide
+        lims = [-np.pi / 6, np.pi / 6]
+        neg_grasps_candidate_set_1 = np.array(
+            [
+                tra.euler_matrix(rot[0], rot[1], rot[2]) @ g
+                for rot, g in zip(
+                    np.random.uniform(
+                        lims[0], lims[1], size=(num_grasps_upsampled, 3)
+                    ),
+                    neg_grasps_src,
+                )
+            ]
+        )
 
-    # Add grasps by perturbing the -translation, but fixed orientation. Make sure these collide
-    lims = [0.03, 0.08]
-    neg_grasps_candidate_set_2 = np.array(
-        [
-            g @ tra.translation_matrix([0, 0, z])
-            for z, g in zip(
-                np.random.uniform(lims[0], lims[1], size=num_grasps_upsampled),
-                neg_grasps_src,
-            )
-        ]
-    )
+        # Add grasps by perturbing the -translation, but fixed orientation. Make sure these collide
+        lims = [0.03, 0.08]
+        neg_grasps_candidate_set_2 = np.array(
+            [
+                g @ tra.translation_matrix([0, 0, z])
+                for z, g in zip(
+                    np.random.uniform(lims[0], lims[1], size=num_grasps_upsampled),
+                    neg_grasps_src,
+                )
+            ]
+        )
 
-    # Do a combination of the two above.
-    lims_trans = [0.02, 0.06]
-    lims_rot = [-np.pi / 6, np.pi / 6]
-    neg_grasps_candidate_set_3 = np.array(
-        [
-            tra.euler_matrix(rot[0], rot[1], rot[2])
-            @ g
-            @ tra.translation_matrix([0, 0, z])
-            for z, rot, g in zip(
-                np.random.uniform(
-                    lims_trans[0], lims_trans[1], size=num_grasps_upsampled
-                ),
-                np.random.uniform(
-                    lims_rot[0], lims_rot[1], size=(num_grasps_upsampled, 3)
-                ),
-                neg_grasps_src,
-            )
-        ]
-    )
-    neg_grasp_candidates = np.vstack(
-        [
-            # neg_grasps_candidate_set_0,
-            neg_grasps_candidate_set_1,
-            neg_grasps_candidate_set_2,
-            neg_grasps_candidate_set_3,
-        ]
-    )
+        # Do a combination of the two above.
+        lims_trans = [0.02, 0.06]
+        lims_rot = [-np.pi / 6, np.pi / 6]
+        neg_grasps_candidate_set_3 = np.array(
+            [
+                tra.euler_matrix(rot[0], rot[1], rot[2])
+                @ g
+                @ tra.translation_matrix([0, 0, z])
+                for z, rot, g in zip(
+                    np.random.uniform(
+                        lims_trans[0], lims_trans[1], size=num_grasps_upsampled
+                    ),
+                    np.random.uniform(
+                        lims_rot[0], lims_rot[1], size=(num_grasps_upsampled, 3)
+                    ),
+                    neg_grasps_src,
+                )
+            ]
+        )
+        neg_grasp_candidates = np.vstack(
+            [
+                # neg_grasps_candidate_set_0,
+                neg_grasps_candidate_set_1,
+                neg_grasps_candidate_set_2,
+                neg_grasps_candidate_set_3,
+            ]
+        )
 
-    collision = check_collision(scene_mesh, gripper_mesh, neg_grasp_candidates)
+    collision = check_collision(
+        scene_mesh,
+        gripper_mesh,
+        neg_grasp_candidates,
+        timing_profiler=timing_profiler,
+    )
     neg_grasp_hn = neg_grasp_candidates[collision]
     # print(f"Hardnegatives: {len(neg_grasp_hn)} out of {len(neg_grasp_candidates)} grasps are colliding")
 
@@ -1769,6 +1927,8 @@ def load_discriminator_batch_with_stratified_sampling(
     grasps_negative: np.ndarray = None,
     positive_grasps_onpolicy: np.ndarray = None,
     negative_grasps_onpolicy: np.ndarray = None,
+    scene_mesh: trimesh.base.Trimesh = None,
+    timing_profiler: DatasetTimingProfiler = None,
 ):
 
     N = num_grasps_per_batch
@@ -1809,13 +1969,14 @@ def load_discriminator_batch_with_stratified_sampling(
         num_pos_true_grasps += num_neg_true_grasps
         num_neg_true_grasps = 0
 
-    obj_scale = scene_info["scales"][0]
-    obj_asset_path = scene_info["assets"][0]
-    obj_pose = scene_info["poses"][0]
+    if scene_mesh is None:
+        obj_scale = scene_info["scales"][0]
+        obj_asset_path = scene_info["assets"][0]
+        obj_pose = scene_info["poses"][0]
 
-    scene_mesh = trimesh.load(obj_asset_path)
-    scene_mesh.apply_scale(obj_scale)
-    scene_mesh.apply_transform(obj_pose)
+        scene_mesh = trimesh.load(obj_asset_path)
+        scene_mesh.apply_scale(obj_scale)
+        scene_mesh.apply_transform(obj_pose)
 
     grasps, grasp_ids = None, None
 
@@ -1900,7 +2061,11 @@ def load_discriminator_batch_with_stratified_sampling(
 
     # Step 2 - Add the hard negatives
     grasps_neg_hncolliding = generate_negative_hardnegatives(
-        num_neg_hncolliding, grasps_positive, scene_mesh, gripper_mesh
+        num_neg_hncolliding,
+        grasps_positive,
+        scene_mesh,
+        gripper_mesh,
+        timing_profiler=timing_profiler,
     )
 
     if grasps_neg_hncolliding is not None:
