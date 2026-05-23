@@ -19,7 +19,7 @@ import os
 import random
 import time
 from collections import defaultdict
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from typing import Tuple, Union
 
 import h5py
@@ -134,16 +134,18 @@ class DatasetTimingProfiler:
         }
         logger.info(
             "[DATASET TIMING] worker=%s samples=%d scene=%s "
-            "semantic_negative=%.2fms scene_mesh=%.2fms "
-            "discriminator_batch=%.2fms hard_negative=%.2fms collision=%.2fms",
+            "scene_mesh_load_scale=%.2fms scene_mesh_copy=%.2fms "
+            "scene_mesh_transform=%.2fms hard_negative_candidates=%.2fms "
+            "collision_setup=%.2fms collision_query=%.2fms",
             worker_id,
             self._sample_count,
             scene_key,
-            avg_ms.get("semantic_negative", 0.0),
-            avg_ms.get("scene_mesh", 0.0),
-            avg_ms.get("discriminator_batch", 0.0),
-            avg_ms.get("hard_negative", 0.0),
-            avg_ms.get("collision", 0.0),
+            avg_ms.get("scene_mesh_load_scale", 0.0),
+            avg_ms.get("scene_mesh_copy", 0.0),
+            avg_ms.get("scene_mesh_transform", 0.0),
+            avg_ms.get("hard_negative_candidates", 0.0),
+            avg_ms.get("collision_setup", 0.0),
+            avg_ms.get("collision_query", 0.0),
         )
         self._totals.clear()
 
@@ -1089,12 +1091,15 @@ class ObjectPickDataset(PickDataset):
     def _build_scene_mesh(self, obj_asset_path, obj_scale, obj_pose):
         cache_key = (obj_asset_path, float(obj_scale))
         if cache_key not in self._scaled_mesh_cache:
-            mesh = trimesh.load(obj_asset_path)
-            mesh.apply_scale(obj_scale)
+            with self.timing_profiler.track("scene_mesh_load_scale"):
+                mesh = trimesh.load(obj_asset_path)
+                mesh.apply_scale(obj_scale)
             self._scaled_mesh_cache[cache_key] = mesh
 
-        scene_mesh = self._scaled_mesh_cache[cache_key].copy()
-        scene_mesh.apply_transform(obj_pose)
+        with self.timing_profiler.track("scene_mesh_copy"):
+            scene_mesh = self._scaled_mesh_cache[cache_key].copy()
+        with self.timing_profiler.track("scene_mesh_transform"):
+            scene_mesh.apply_transform(obj_pose)
         return scene_mesh
 
     def __getitem__(self, idx):
@@ -1535,87 +1540,84 @@ class ObjectPickDataset(PickDataset):
             #         reader_logger.setLevel(prev_level) # 恢复声音
             # # ==============================================================================
 
-            with self.timing_profiler.track("semantic_negative"):
-                current_scene = self.scenes[idx]
+            current_scene = self.scenes[idx]
 
-                # ================= 新增：兼容新旧命名的语义负样本构建 =================
-                # 旧格式: hammer_1_down_handle.obj     => base=hammer_1, region=handle, ori=down
-                # 新格式: hammer_1_Handle_Down.obj     => base=hammer_1, region=handle, ori=down
-                # 思路: 初始化时就建好索引，getitem 里只做查表。
-                parsed_current = self.scene_semantics.get(current_scene)
+            # ================= 新增：兼容新旧命名的语义负样本构建 =================
+            # 旧格式: hammer_1_down_handle.obj     => base=hammer_1, region=handle, ori=down
+            # 新格式: hammer_1_Handle_Down.obj     => base=hammer_1, region=handle, ori=down
+            # 思路: 初始化时就建好索引，getitem 里只做查表。
+            parsed_current = self.scene_semantics.get(current_scene)
 
-                if parsed_current is None:
-                    logger.warning(f"[语义负样本] 无法解析当前 scene 名称: {current_scene}")
-                    opposite_keys = []
-                else:
-                    opposite_keys = self.semantic_negative_scenes[current_scene]
-                # ================= 新增：限制每个样本最多读取几个语义负样本文件 =================
-                max_opp_files = 2
+            if parsed_current is None:
+                logger.warning(f"[语义负样本] 无法解析当前 scene 名称: {current_scene}")
+                opposite_keys = []
+            else:
+                opposite_keys = self.semantic_negative_scenes[current_scene]
+            # ================= 新增：限制每个样本最多读取几个语义负样本文件 =================
+            max_opp_files = 2
 
-                if len(opposite_keys) > max_opp_files:
-                    opposite_keys = random.sample(opposite_keys, max_opp_files)
-                # =====================================================================
+            if len(opposite_keys) > max_opp_files:
+                opposite_keys = random.sample(opposite_keys, max_opp_files)
+            # =====================================================================
 
-                # --- 读取其它语义文件里的 positive_grasps，当作当前任务的 true negative ---
-                import logging
+            # --- 读取其它语义文件里的 positive_grasps，当作当前任务的 true negative ---
+            import logging
 
-                reader_logger = logging.getLogger("grasp_gen.dataset.dataset_utils")
+            reader_logger = logging.getLogger("grasp_gen.dataset.dataset_utils")
 
-                num_loaded_opp = 0
-                num_loaded_opp_grasps = 0
+            num_loaded_opp = 0
+            num_loaded_opp_grasps = 0
 
-                for opp_key in opposite_keys:
-                    prev_level = reader_logger.level
-                    reader_logger.setLevel(logging.WARNING)
+            for opp_key in opposite_keys:
+                prev_level = reader_logger.level
+                reader_logger.setLevel(logging.WARNING)
 
-                    try:
-                        opp_grasp_data = None
+                try:
+                    opp_grasp_data = None
 
-                        if self.preload_dataset and opp_key in self.cache:
-                            opp_grasp_data = self.cache[opp_key][0]
-                        else:
-                            _, opp_grasp_data = load_object_grasp_data(
-                                opp_key,
-                                self.object_root_dir,
-                                self.grasp_root_dir,
-                                self.dataset_version,
-                                load_discriminator_dataset=False,
-                                gripper_info=self.gripper_info,
-                                onpolicy_dataset_dir=None,
-                                onpolicy_dataset_h5_path=None,
-                                onpolicy_json_path=None,
-                                onpolicy_data_found=False,
-                                grasp_dataset_reader=self.grasp_dataset_reader,
-                            )
+                    if self.preload_dataset and opp_key in self.cache:
+                        opp_grasp_data = self.cache[opp_key][0]
+                    else:
+                        _, opp_grasp_data = load_object_grasp_data(
+                            opp_key,
+                            self.object_root_dir,
+                            self.grasp_root_dir,
+                            self.dataset_version,
+                            load_discriminator_dataset=False,
+                            gripper_info=self.gripper_info,
+                            onpolicy_dataset_dir=None,
+                            onpolicy_dataset_h5_path=None,
+                            onpolicy_json_path=None,
+                            onpolicy_data_found=False,
+                            grasp_dataset_reader=self.grasp_dataset_reader,
+                        )
 
-                        if (
-                            opp_grasp_data is not None
-                            and opp_grasp_data.positive_grasps is not None
-                        ):
-                            opp_grasps = opp_grasp_data.positive_grasps.copy()
+                    if (
+                        opp_grasp_data is not None
+                        and opp_grasp_data.positive_grasps is not None
+                    ):
+                        opp_grasps = opp_grasp_data.positive_grasps.copy()
 
-                            if len(opp_grasps) > 0:
-                                # 必须和当前点云使用同一个 T_move_to_pc_mean
-                                opp_grasps = np.array(
-                                    [T_move_to_pc_mean @ g for g in opp_grasps]
-                                )
+                        if len(opp_grasps) > 0:
+                            # 必须和当前点云使用同一个 T_move_to_pc_mean
+                            opp_grasps = np.array([T_move_to_pc_mean @ g for g in opp_grasps])
 
-                                # 如果当前样本做了旋转增强，负样本也要做同一个增强
-                                if self.rotation_augmentation and "T_aug" in locals():
-                                    opp_grasps = np.array([T_aug @ g for g in opp_grasps])
+                            # 如果当前样本做了旋转增强，负样本也要做同一个增强
+                            if self.rotation_augmentation and "T_aug" in locals():
+                                opp_grasps = np.array([T_aug @ g for g in opp_grasps])
 
-                                if negative_grasps is None:
-                                    negative_grasps = opp_grasps
-                                else:
-                                    negative_grasps = np.vstack((negative_grasps, opp_grasps))
+                            if negative_grasps is None:
+                                negative_grasps = opp_grasps
+                            else:
+                                negative_grasps = np.vstack((negative_grasps, opp_grasps))
 
-                                num_loaded_opp += 1
-                                num_loaded_opp_grasps += len(opp_grasps)
+                            num_loaded_opp += 1
+                            num_loaded_opp_grasps += len(opp_grasps)
 
-                    except Exception as e:
-                        logger.warning(f"[语义负样本] 读取失败 opp_key={opp_key}, err={repr(e)}")
-                    finally:
-                        reader_logger.setLevel(prev_level)
+                except Exception as e:
+                    logger.warning(f"[语义负样本] 读取失败 opp_key={opp_key}, err={repr(e)}")
+                finally:
+                    reader_logger.setLevel(prev_level)
 
             # logger.info(
             #     f"[语义负样本] scene={current_scene}, "
@@ -1716,22 +1718,19 @@ class ObjectPickDataset(PickDataset):
 
 
 
-            with self.timing_profiler.track("scene_mesh"):
-                scene_mesh = self._build_scene_mesh(obj_asset_path, obj_scale, obj_pose)
-
-            with self.timing_profiler.track("discriminator_batch"):
-                batch_data, scene_mesh = load_discriminator_batch_with_stratified_sampling(
-                    self.num_grasps_per_object,
-                    positive_grasps,
-                    self.discriminator_ratio,
-                    scene_info,
-                    self.gripper_collision_mesh,
-                    negative_grasps,
-                    positive_grasps_onpolicy=positive_grasps_onpolicy,
-                    negative_grasps_onpolicy=negative_grasps_onpolicy,
-                    scene_mesh=scene_mesh,
-                    timing_profiler=self.timing_profiler,
-                )
+            scene_mesh = self._build_scene_mesh(obj_asset_path, obj_scale, obj_pose)
+            batch_data, scene_mesh = load_discriminator_batch_with_stratified_sampling(
+                self.num_grasps_per_object,
+                positive_grasps,
+                self.discriminator_ratio,
+                scene_info,
+                self.gripper_collision_mesh,
+                negative_grasps,
+                positive_grasps_onpolicy=positive_grasps_onpolicy,
+                negative_grasps_onpolicy=negative_grasps_onpolicy,
+                scene_mesh=scene_mesh,
+                timing_profiler=self.timing_profiler,
+            )
 
             # ================= 新增：给当前 batch 加物体类别 id =================
             object_name, object_id = self.scene_object_categories[self.scenes[idx]]
@@ -1915,68 +1914,70 @@ def generate_negative_hardnegatives(
     if num_grasps == 0:
         return
 
-    upsample_factor = 0.70  # NOTE: This number is specifically tuned to ensure there are enough colliding grasps to choose from in the next step, which still being minimized (as it introduces delays)
-    num_grasps_upsampled = int(upsample_factor * num_grasps)
-    neg_grasps_src = grasps_starter[
-        np.random.randint(0, len(grasps_starter), num_grasps_upsampled)
-    ]
-    # Add grasps by perturbing a little bit, the orientation.  Make sure these collide
-    lims = [-np.pi / 6, np.pi / 6]
-    neg_grasps_candidate_set_1 = np.array(
-        [
-            tra.euler_matrix(rot[0], rot[1], rot[2]) @ g
-            for rot, g in zip(
-                np.random.uniform(lims[0], lims[1], size=(num_grasps_upsampled, 3)),
-                neg_grasps_src,
-            )
+    with timing_profiler.track("hard_negative_candidates") if timing_profiler else nullcontext():
+        upsample_factor = 0.70  # NOTE: This number is specifically tuned to ensure there are enough colliding grasps to choose from in the next step, which still being minimized (as it introduces delays)
+        num_grasps_upsampled = int(upsample_factor * num_grasps)
+        neg_grasps_src = grasps_starter[
+            np.random.randint(0, len(grasps_starter), num_grasps_upsampled)
         ]
-    )
+        # Add grasps by perturbing a little bit, the orientation.  Make sure these collide
+        lims = [-np.pi / 6, np.pi / 6]
+        neg_grasps_candidate_set_1 = np.array(
+            [
+                tra.euler_matrix(rot[0], rot[1], rot[2]) @ g
+                for rot, g in zip(
+                    np.random.uniform(lims[0], lims[1], size=(num_grasps_upsampled, 3)),
+                    neg_grasps_src,
+                )
+            ]
+        )
 
-    # Add grasps by perturbing the -translation, but fixed orientation. Make sure these collide
-    lims = [0.03, 0.08]
-    neg_grasps_candidate_set_2 = np.array(
-        [
-            g @ tra.translation_matrix([0, 0, z])
-            for z, g in zip(
-                np.random.uniform(lims[0], lims[1], size=num_grasps_upsampled),
-                neg_grasps_src,
-            )
-        ]
-    )
+        # Add grasps by perturbing the -translation, but fixed orientation. Make sure these collide
+        lims = [0.03, 0.08]
+        neg_grasps_candidate_set_2 = np.array(
+            [
+                g @ tra.translation_matrix([0, 0, z])
+                for z, g in zip(
+                    np.random.uniform(lims[0], lims[1], size=num_grasps_upsampled),
+                    neg_grasps_src,
+                )
+            ]
+        )
 
-    # Do a combination of the two above.
-    lims_trans = [0.02, 0.06]
-    lims_rot = [-np.pi / 6, np.pi / 6]
-    neg_grasps_candidate_set_3 = np.array(
-        [
-            tra.euler_matrix(rot[0], rot[1], rot[2])
-            @ g
-            @ tra.translation_matrix([0, 0, z])
-            for z, rot, g in zip(
-                np.random.uniform(
-                    lims_trans[0], lims_trans[1], size=num_grasps_upsampled
-                ),
-                np.random.uniform(
-                    lims_rot[0], lims_rot[1], size=(num_grasps_upsampled, 3)
-                ),
-                neg_grasps_src,
-            )
-        ]
-    )
-    neg_grasp_candidates = np.vstack(
-        [
-            # neg_grasps_candidate_set_0,
-            neg_grasps_candidate_set_1,
-            neg_grasps_candidate_set_2,
-            neg_grasps_candidate_set_3,
-        ]
-    )
+        # Do a combination of the two above.
+        lims_trans = [0.02, 0.06]
+        lims_rot = [-np.pi / 6, np.pi / 6]
+        neg_grasps_candidate_set_3 = np.array(
+            [
+                tra.euler_matrix(rot[0], rot[1], rot[2])
+                @ g
+                @ tra.translation_matrix([0, 0, z])
+                for z, rot, g in zip(
+                    np.random.uniform(
+                        lims_trans[0], lims_trans[1], size=num_grasps_upsampled
+                    ),
+                    np.random.uniform(
+                        lims_rot[0], lims_rot[1], size=(num_grasps_upsampled, 3)
+                    ),
+                    neg_grasps_src,
+                )
+            ]
+        )
+        neg_grasp_candidates = np.vstack(
+            [
+                # neg_grasps_candidate_set_0,
+                neg_grasps_candidate_set_1,
+                neg_grasps_candidate_set_2,
+                neg_grasps_candidate_set_3,
+            ]
+        )
 
-    if timing_profiler is None:
-        collision = check_collision(scene_mesh, gripper_mesh, neg_grasp_candidates)
-    else:
-        with timing_profiler.track("collision"):
-            collision = check_collision(scene_mesh, gripper_mesh, neg_grasp_candidates)
+    collision = check_collision(
+        scene_mesh,
+        gripper_mesh,
+        neg_grasp_candidates,
+        timing_profiler=timing_profiler,
+    )
     neg_grasp_hn = neg_grasp_candidates[collision]
     # print(f"Hardnegatives: {len(neg_grasp_hn)} out of {len(neg_grasp_candidates)} grasps are colliding")
 
@@ -2168,19 +2169,13 @@ def load_discriminator_batch_with_stratified_sampling(
         grasp_ids = torch.vstack([grasp_ids, grasps_id_neg_true]).int()
 
     # Step 2 - Add the hard negatives
-    if timing_profiler is None:
-        grasps_neg_hncolliding = generate_negative_hardnegatives(
-            num_neg_hncolliding, grasps_positive, scene_mesh, gripper_mesh
-        )
-    else:
-        with timing_profiler.track("hard_negative"):
-            grasps_neg_hncolliding = generate_negative_hardnegatives(
-                num_neg_hncolliding,
-                grasps_positive,
-                scene_mesh,
-                gripper_mesh,
-                timing_profiler=timing_profiler,
-            )
+    grasps_neg_hncolliding = generate_negative_hardnegatives(
+        num_neg_hncolliding,
+        grasps_positive,
+        scene_mesh,
+        gripper_mesh,
+        timing_profiler=timing_profiler,
+    )
 
     if grasps_neg_hncolliding is not None:
 

@@ -1,5 +1,6 @@
 import logging
 import sys
+from contextlib import nullcontext
 from logging.handlers import QueueHandler
 from pathlib import Path
 from typing import List, Tuple
@@ -53,20 +54,33 @@ def get_timestamp():
     return day_month_year
 
 
-def check_collision(scene_mesh, object_mesh, transforms):
+def check_collision(scene_mesh, object_mesh, transforms, timing_profiler=None):
     """Args:
     scene_mesh: trimesh.Trimesh
     object_mesh: trimesh.Trimesh
     transforms: list of 4x4 np.array
     """
-    scene_manager = CollisionManager()
-    scene_manager.add_object("object", scene_mesh)
-    obj_manager = CollisionManager()
-    obj_manager.add_object("object", object_mesh)
-    collision = []
-    for tr in transforms:
-        obj_manager.set_transform("object", tr)
-        collision.append(scene_manager.in_collision_other(obj_manager))
+    setup_ctx = (
+        timing_profiler.track("collision_setup")
+        if timing_profiler is not None
+        else nullcontext()
+    )
+    with setup_ctx:
+        scene_manager = CollisionManager()
+        scene_manager.add_object("object", scene_mesh)
+        obj_manager = CollisionManager()
+        obj_manager.add_object("object", object_mesh)
+
+    query_ctx = (
+        timing_profiler.track("collision_query")
+        if timing_profiler is not None
+        else nullcontext()
+    )
+    with query_ctx:
+        collision = []
+        for tr in transforms:
+            obj_manager.set_transform("object", tr)
+            collision.append(scene_manager.in_collision_other(obj_manager))
     return np.array(collision).astype("bool")
 
 
