@@ -1,0 +1,97 @@
+{
+  "knife_up_handle": [
+    "Grasp the knife to cut.",
+    "Grasp the knife handle to cut.",
+    "Hold the knife by the handle for cutting."
+  ],
+  "knife_down_blade": [
+    "Grasp the knife to pass.",
+    "Grasp the knife blade to pass it safely.",
+    "Pass me the knife."
+  ],
+  "hammer_up_handle": [
+    "Grasp the hammer to strike.",
+    "Grasp the hammer handle to strike.",
+    "Hold the hammer by the handle for hitting a nail."
+  ],
+  "hammer_down_handle": [
+    "Grasp the hammer to pull.",
+    "Grasp the hammer handle to pull a nail.",
+    "Grip the handle so the claw can pry a nail loose."
+  ],
+  "hammer_up_head": [
+    "Grasp the hammer head to pass it.",
+    "Hold the hammer head for a handoff.",
+    "Pass me the hammer."
+  ],
+  "hammer_down_head": [
+    "Grasp the lower side of the hammer head to pass it.",
+    "Hold the lower side of the hammer head for a handoff.",
+    "Grasp the lower side of the hammer head to pass."
+  ],
+  "brush_up_handle": [
+    "Grasp the brush to clean.",
+    "Grasp the brush handle to clean.",
+    "Hold the brush by the handle for cleaning."
+  ],
+  "brush_up_head": [
+    "Grasp the brush head to pass it.",
+    "Hold the brush head for a handoff.",
+    "Pass me the brush."
+  ],
+  "brush_down_head": [
+    "Grasp the lower side of the brush head to pass it.",
+    "Hold the lower side of the brush head for a handoff.",
+    "Grasp the lower side of the brush head to pass."
+  ],
+  "mug_up_handle": [
+    "Grasp the mug to pour.",
+    "Grasp the mug handle to pour.",
+    "Hold the mug by the handle for pouring."
+  ],
+  "mug_front_rim": [
+    "Grasp the front rim of the mug to pass it.",
+    "Hold the front side of the mug rim for a handoff.",
+    "Pass me the mug."
+  ],
+  "drill_up_handle": [
+    "Grasp the drill to operate.",
+    "Grasp the drill handle to operate it.",
+    "Hold the upper drill handle for drilling."
+  ],
+  "drill_left_head": [
+    "Grasp the left side of the drill head to pass it.",
+    "Hold the left side of the drill head for a handoff.",
+    "Grasp the left side of the drill head to pass."
+  ],
+  "drill_right_head": [
+    "Grasp the right side of the drill head to pass it.",
+    "Hold the right side of the drill head for a handoff.",
+    "Grasp the right side of the drill head to pass."
+  ],
+  "drill_front_head": [
+    "Grasp the front side of the drill head to pass it.",
+    "Hold the front side of the drill head for a handoff.",
+    "Pass me the drill."
+  ],
+  "spoon_up_handle": [
+    "Grasp the spoon to scoop.",
+    "Grasp the spoon handle to scoop.",
+    "Hold the spoon by the handle for scooping."
+  ],
+  "spoon_left_head": [
+    "Grasp the left side of the spoon head to pass it.",
+    "Hold the left side of the spoon bowl for a handoff.",
+    "Grasp the left side of the spoon head to pass."
+  ],
+  "spoon_right_head": [
+    "Grasp the right side of the spoon head to pass it.",
+    "Hold the right side of the spoon bowl for a handoff.",
+    "Grasp the right side of the spoon head to pass."
+  ],
+  "spoon_front_head": [
+    "Grasp the front side of the spoon head to pass it.",
+    "Hold the front side of the spoon bowl for a handoff.",
+    "Pass me the spoon."
+  ]
+}

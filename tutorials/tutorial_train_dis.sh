@@ -41,7 +41,7 @@ rm -rf $LOG_DIR
 mkdir -p $LOG_DIR
 mkdir -p $CACHE_DIR
 
-cd $CODE_DIR && pip install -e . && cd $CODE_DIR/scripts && \
+cd $CODE_DIR && pip install -e . --no-deps && cd $CODE_DIR/scripts && \
     python train_graspgen.py \
     data.num_points=$NUM_POINTS \
     data.load_contact=False \

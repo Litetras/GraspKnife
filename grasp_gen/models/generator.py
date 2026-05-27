@@ -45,12 +45,202 @@ from grasp_gen.models.model_utils import (
 from grasp_gen.models.ptv3.ptv3 import PointTransformerV3
 from grasp_gen.robot import get_gripper_info
 from grasp_gen.utils.logging_config import get_logger
-from grasp_gen.dataset.dataset import OBJECT_ID2NAME
+from grasp_gen.dataset.dataset import OBJECT_ID2NAME, OBJECT_NAME2ID
 
 logger = get_logger(__name__)
 
 
 from grasp_gen.models.clip_text_encoder import TextEncoder  # frozen CLIP text encoder
+
+
+PASS_TASK_DIR_VECTORS = {
+    "brush_passing": {
+        "object": "brush",
+        "strict_texts": {"up head", "down head"},
+        "vectors": [[0.0, -1.0, 0.0], [0.0, 1.0, 0.0]],
+    },
+    "hammer_passing": {
+        "object": "hammer",
+        "strict_texts": {"up head", "down head"},
+        "vectors": [[0.0, -1.0, 0.0], [0.0, 1.0, 0.0]],
+    },
+    "drill_passing": {
+        "object": "drill",
+        "strict_texts": {"left head", "right head", "front head"},
+        "vectors": [[0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 0.0]],
+    },
+    "spoon_passing": {
+        "object": "spoon",
+        "strict_texts": {"left head", "right head", "front head"},
+        "vectors": [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0]],
+    },
+}
+
+
+def _normalize_strict_text(text):
+    return " ".join(str(text).lower().replace("_", " ").split())
+
+
+def _expand_object_ids_to_grasps(object_ids, strict_texts, mask_batch, num_grasps, device):
+    if object_ids is None or strict_texts is None:
+        return None
+    if isinstance(object_ids, list):
+        object_ids = torch.cat(object_ids)
+
+    object_ids = object_ids.reshape(-1).long().to(device)
+    if object_ids.numel() == len(strict_texts):
+        object_ids = object_ids[mask_batch]
+    if object_ids.numel() != num_grasps:
+        return None
+    return object_ids
+
+
+def _expand_strict_texts_to_grasps(strict_texts, mask_batch):
+    mask_indices = mask_batch.detach().cpu().tolist()
+    return [
+        _normalize_strict_text(strict_texts[int(idx)])
+        if int(idx) < len(strict_texts)
+        else ""
+        for idx in mask_indices
+    ]
+
+
+def compute_semantic_direction_stats(
+    dir_correct_30,
+    object_ids,
+    strict_texts,
+    mask_batch,
+    device,
+):
+    stats = {}
+    object_ids = _expand_object_ids_to_grasps(
+        object_ids,
+        strict_texts,
+        mask_batch,
+        dir_correct_30.shape[0],
+        device,
+    )
+    if object_ids is None:
+        return stats
+
+    strict_text_per_grasp = _expand_strict_texts_to_grasps(strict_texts, mask_batch)
+    semantic_indices = {}
+    object_ids_cpu = object_ids.detach().cpu().tolist()
+    for grasp_idx, (obj_id, strict_text) in enumerate(
+        zip(object_ids_cpu, strict_text_per_grasp)
+    ):
+        obj_name = OBJECT_ID2NAME.get(int(obj_id))
+        if obj_name is None or strict_text == "":
+            continue
+        semantic_key = f"{obj_name}_{strict_text.replace(' ', '_')}"
+        semantic_indices.setdefault(semantic_key, []).append(grasp_idx)
+
+    for semantic_key, indices in semantic_indices.items():
+        idx = torch.tensor(indices, dtype=torch.long, device=device)
+        semantic_correct = dir_correct_30[idx]
+        stats[f"dir_acc_30_semantic_{semantic_key}"] = (
+            semantic_correct.float().mean() * 100.0
+        )
+        stats[f"dir_count_semantic_{semantic_key}"] = torch.tensor(
+            float(len(indices)), device=device
+        )
+
+    return stats
+
+
+def compute_pass_task_direction_stats(
+    pred_approach_dir,
+    object_ids,
+    strict_texts,
+    mask_batch,
+    device,
+    pass_task_names=None,
+    pass_task_direction_vectors=None,
+):
+    stats = {}
+    pred_dir = torch.nn.functional.normalize(pred_approach_dir, dim=-1)
+    cos_threshold = np.cos(np.deg2rad(30.0))
+
+    if pass_task_names is not None and pass_task_direction_vectors is not None:
+        correct_counts = {}
+        total_counts = {}
+
+        for object_idx, task_name in enumerate(pass_task_names):
+            if task_name == "" or object_idx >= len(pass_task_direction_vectors):
+                continue
+
+            allowed_dirs = pass_task_direction_vectors[object_idx]
+            if not isinstance(allowed_dirs, torch.Tensor) or allowed_dirs.numel() == 0:
+                continue
+
+            grasp_mask = mask_batch == object_idx
+            if grasp_mask.sum() == 0:
+                continue
+
+            allowed_dirs = torch.nn.functional.normalize(
+                allowed_dirs.to(device=device, dtype=pred_dir.dtype),
+                dim=-1,
+            )
+            best_cos = pred_dir[grasp_mask] @ allowed_dirs.t()
+            task_correct = best_cos.max(dim=-1).values > cos_threshold
+
+            correct_counts[task_name] = correct_counts.get(
+                task_name, torch.tensor(0.0, device=device)
+            ) + task_correct.float().sum()
+            total_counts[task_name] = total_counts.get(
+                task_name, torch.tensor(0.0, device=device)
+            ) + torch.tensor(float(task_correct.numel()), device=device)
+
+        for task_name, total_count in total_counts.items():
+            stats[f"dir_acc_30_task_{task_name}"] = (
+                correct_counts[task_name] / torch.clamp(total_count, min=1.0) * 100.0
+            )
+            stats[f"dir_count_task_{task_name}"] = total_count
+
+        return stats
+
+    if object_ids is None or strict_texts is None:
+        return stats
+    if isinstance(object_ids, list):
+        object_ids = torch.cat(object_ids)
+    object_ids = object_ids.reshape(-1).long().to(device)
+    if object_ids.numel() == len(strict_texts):
+        object_ids = object_ids[mask_batch]
+    if object_ids.numel() != pred_approach_dir.shape[0]:
+        return stats
+
+    mask_indices = mask_batch.detach().cpu().tolist()
+    strict_text_per_grasp = [
+        _normalize_strict_text(strict_texts[int(idx)])
+        if int(idx) < len(strict_texts)
+        else ""
+        for idx in mask_indices
+    ]
+
+    for task_name, cfg in PASS_TASK_DIR_VECTORS.items():
+        obj_id = OBJECT_NAME2ID[cfg["object"]]
+        text_mask = torch.tensor(
+            [text in cfg["strict_texts"] for text in strict_text_per_grasp],
+            dtype=torch.bool,
+            device=device,
+        )
+        task_mask = (object_ids == obj_id) & text_mask
+        if task_mask.sum() == 0:
+            continue
+
+        target_dirs = torch.tensor(
+            cfg["vectors"],
+            dtype=pred_dir.dtype,
+            device=device,
+        )
+        target_dirs = torch.nn.functional.normalize(target_dirs, dim=-1)
+        best_cos = pred_dir[task_mask] @ target_dirs.t()
+        task_correct = best_cos.max(dim=-1).values > cos_threshold
+
+        stats[f"dir_acc_30_task_{task_name}"] = task_correct.float().mean() * 100.0
+        stats[f"dir_count_task_{task_name}"] = task_mask.sum().float()
+
+    return stats
 
 
 class GraspGenGenerator(nn.Module):
@@ -602,6 +792,28 @@ class GraspGenGenerator(nn.Module):
                                 dir_correct_30[obj_mask].float().mean() * 100.0
                             )
                             stats[f"dir_count_obj_{obj_name}"] = obj_mask.sum().float()
+                    stats.update(
+                        compute_semantic_direction_stats(
+                            dir_correct_30=dir_correct_30,
+                            object_ids=object_ids,
+                            strict_texts=data.get("strict_text"),
+                            mask_batch=mask_batch,
+                            device=device,
+                        )
+                    )
+                    stats.update(
+                        compute_pass_task_direction_stats(
+                            pred_approach_dir=pred_approach_dir,
+                            object_ids=object_ids,
+                            strict_texts=data.get("strict_text"),
+                            mask_batch=mask_batch,
+                            device=device,
+                            pass_task_names=data.get("pass_task_name"),
+                            pass_task_direction_vectors=data.get(
+                                "pass_task_direction_vectors"
+                            ),
+                        )
+                    )
                 # =================================================================
         # =====================================================================###############
 

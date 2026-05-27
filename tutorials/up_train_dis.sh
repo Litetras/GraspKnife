@@ -2,8 +2,8 @@
 
 # Fixed parameters
 export NGPU=1
-export NWORKER=4
-export NEPOCH=7000  #>5000  #这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
+export NWORKER=6
+export NEPOCH=8000  #>6000  #这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
 export BATCH=16
 export PRINT_FREQ=10
 export PLOT_FREQ=10
@@ -31,17 +31,19 @@ export SPLIT_DATASET_DIR="$OBJECT_DATASET_DIR"
 export METHOD="grasp_gen"
 export RATIO="[0.50,0.40,0.05,0.05,0.00,0.00,0.00]" #"[0.25,0.24,0.00,0.01,0.00,0.25,0.25]"################################危险###########
 export PYOPENGL_PLATFORM="osmesa"
-export LOG_DIR="$RESULTS_DIR/logs/${GRIPPER_NAME}_dis_test"
+export LOG_DIR="${DIS_LOG_DIR:-$RESULTS_DIR/logs/${GRIPPER_NAME}_dis_test}"
 export CACHE_DIR="$RESULTS_DIR/cache"
-export CHECKPOINT="$LOG_DIR/last.pth"
+export CHECKPOINT="${DIS_CHECKPOINT:-$LOG_DIR/last.pth}"
+export IGNORE_OBJECT_CATEGORIES="screwdriver"
 
 echo "Running Training for $GRIPPER_NAME"
 
 # rm -rf $LOG_DIR  <-- 重点：一定要注释掉或者直接删掉这行！
 mkdir -p $LOG_DIR
 mkdir -p $CACHE_DIR
+cp "$CODE_DIR/tutorials/natural_texts.json" "$RESULTS_DIR/natural_texts.json"
 
-cd $CODE_DIR && pip install -e . && cd $CODE_DIR/scripts && \
+cd $CODE_DIR && pip install -e . --no-deps && cd $CODE_DIR/scripts && \
     python train_graspgen.py \
     data.num_points=$NUM_POINTS \
     data.load_contact=False \

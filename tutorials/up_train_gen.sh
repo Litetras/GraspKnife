@@ -2,8 +2,8 @@
 
 # Fixed parameters
 export NGPU=1
-export NWORKER=4
-export NEPOCH=13000 #>10000     ##这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
+export NWORKER=6
+export NEPOCH=12000 #>11000 13000  
 export BATCH=8
 export PRINT_FREQ=10
 export PLOT_FREQ=10
@@ -33,14 +33,16 @@ export NOISE_SCALE=1.0
 export LOG_DIR="$RESULTS_DIR/logs/${GRIPPER_NAME}_gen_test"
 export CHECKPOINT="$LOG_DIR/last.pth"
 export CACHE_DIR="$RESULTS_DIR/cache"
+export IGNORE_OBJECT_CATEGORIES="screwdriver"
 
 echo "Running Training for $GRIPPER_NAME"
 
 # rm -rf $LOG_DIR  <-- 重点：一定要注释掉或者直接删掉这行！
 mkdir -p $LOG_DIR
 mkdir -p $CACHE_DIR
+cp "$CODE_DIR/tutorials/natural_texts.json" "$RESULTS_DIR/natural_texts.json"
 
-cd $CODE_DIR && pip install -e . && cd $CODE_DIR/scripts && \
+cd $CODE_DIR && pip install -e . --no-deps && cd $CODE_DIR/scripts && \
     python train_graspgen.py \
     data.num_points=$NUM_POINTS \
     data.load_contact=False \

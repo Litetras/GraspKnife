@@ -57,6 +57,92 @@ logger = get_logger(__name__)
 handler_called = False
 
 
+LANGUAGE_WARMUP_STEPS = 3000.0#2000.0
+LANGUAGE_TRANSITION_STEPS = 5000.0#1000.0
+LANGUAGE_STATE_KEYWORDS = (
+    "qwen",
+    "lora",
+    "mlp_projector",
+)
+
+
+def checkpoint_has_language_state(ckpt):
+    model_state = ckpt.get("model", {})
+    return any(
+        any(keyword in key for keyword in LANGUAGE_STATE_KEYWORDS)
+        for key in model_state.keys()
+    )
+
+
+def get_language_loss_weights(global_step):
+    """Return the anchor/physics cross-fade weights for language fine-tuning.
+
+    The schedule must be based on the checkpointed global step. A process-local
+    counter resets after every restart and causes repeated anchor-only warmups.
+    """
+    physics_weight = min(
+        1.0,
+        max(0.0, (float(global_step) - LANGUAGE_WARMUP_STEPS) / LANGUAGE_TRANSITION_STEPS),
+    )
+    anchor_weight = 10.0 * (1.0 - physics_weight)
+    return physics_weight, anchor_weight
+
+
+def model_uses_language_conditioning(model):
+    raw_model = model.module if hasattr(model, "module") else model
+    return bool(getattr(raw_model, "use_language_conditioning", False))
+
+
+def losses_have_anchor_loss(losses):
+    return (
+        "qwen_anchor_loss" in losses
+        and isinstance(losses["qwen_anchor_loss"][1], torch.Tensor)
+    )
+
+
+def compute_weighted_loss(losses, language_step, use_language_schedule=False):
+    has_anchor_loss = losses_have_anchor_loss(losses)
+
+    # Only models that actually produce qwen_anchor_loss can use the
+    # anchor-to-physics cross-fade. If a model has no anchor loss, its regular
+    # training loss should not be multiplied by the warmup physics weight.
+    if not has_anchor_loss:
+        loss = None
+        for _, (w, v) in losses.items():
+            if not isinstance(v, torch.Tensor):
+                continue
+            term = w * (v if v.requires_grad else v.detach())
+            loss = term if loss is None else loss + term
+        if loss is None:
+            raise RuntimeError("No tensor losses were produced by the model")
+        return loss, 1.0, 0.0
+
+    physics_weight, anchor_weight = get_language_loss_weights(language_step)
+    loss = None
+
+    for key, (w, v) in losses.items():
+        if not isinstance(v, torch.Tensor):
+            continue
+
+        scale = anchor_weight if key == "qwen_anchor_loss" else w * physics_weight
+        if scale == 0:
+            continue
+
+        term = scale * (v if v.requires_grad else v.detach())
+        loss = term if loss is None else loss + term
+
+    if loss is None:
+        first_tensor = next(
+            (v for _, v in losses.values() if isinstance(v, torch.Tensor)),
+            None,
+        )
+        if first_tensor is None:
+            raise RuntimeError("No tensor losses were produced by the model")
+        loss = first_tensor.sum() * 0.0
+
+    return loss, physics_weight, anchor_weight
+
+
 def train_one_epoch(
     loader,
     model,
@@ -65,6 +151,7 @@ def train_one_epoch(
     writer,
     epoch,
     global_step,
+    language_step,
     cfg,
     batch_idx,
     rank,
@@ -113,6 +200,7 @@ def train_one_epoch(
                 use_ddp,
                 name="last",
                 batch_idx=i,
+                extra_state={"language_step": language_step},
             )
             logger.info("Terminating training due to a interrupt, sayonara!")
             sys.exit(0)
@@ -131,6 +219,7 @@ def train_one_epoch(
             continue
 
         global_step += 1
+        language_step += 1
         to_gpu(data)
         data_time += time() - start
         start = time()
@@ -143,59 +232,15 @@ def train_one_epoch(
         if dist.is_initialized():
             dist.barrier()
 
-
-
-# ================== 【终极修改：交叉渐变 (彻底放开 Anchor 束缚)】 ==================
-        loss = 0.0
-        
-        # 0. 专属计数器
-        if not hasattr(model, 'lora_finetune_step'):
-            model.lora_finetune_step = 0
-        model.lora_finetune_step += 1
-        
-        # 1. 设定步数 
-        WARMUP_STEPS = 2000.0  
-        TRANSITION_STEPS = 1000.0 
-        
-        # 2. 计算交叉权重 (Cross-fade)
-        # 物理权重从 0.0 逐渐爬升到 1.0
-        physics_weight = min(1.0, max(0.0, (model.lora_finetune_step - WARMUP_STEPS) / TRANSITION_STEPS))
-        
-        # 【核心改变】：蒸馏权重从 10.0 逐渐衰减到 0.0！(过了 3000 步后，彻底放飞自我)
-        anchor_weight = 10.0 * (1.0 - physics_weight)
-        
-        # 3. 记录到 Tensorboard，观察这两根线如何完美的“X”型交叉
-        if rank == 0:
+        loss, physics_weight, anchor_weight = compute_weighted_loss(
+            losses,
+            language_step,
+            use_language_schedule=model_uses_language_conditioning(model),
+        )
+        if rank == 0 and losses_have_anchor_loss(losses):
             writer.add_scalar("train/weight_physics", physics_weight, global_step)
             writer.add_scalar("train/weight_anchor", anchor_weight, global_step)
-
-        # 4. 组装 Loss
-        # 4.1 只有在 anchor_weight > 0 时才计算蒸馏 (过渡期结束后，这部分直接消失)
-        if "qwen_anchor_loss" in losses and anchor_weight > 0:
-            loss = loss + anchor_weight * losses["qwen_anchor_loss"][1]
-
-        # 4.2 物理 Loss
-        for key, (w, v) in losses.items():
-            if key != "qwen_anchor_loss":
-                if isinstance(v, torch.Tensor) and v.requires_grad:
-                    loss = loss + (w * physics_weight) * v
-                elif isinstance(v, torch.Tensor):
-                    loss = loss + (w * physics_weight) * v.detach()
-        # =======================================================================================
-        
-        
-        
-        # # loss = sum([w * v for w, v in losses.values()])
-        #         # ================== 【修改：安全计算 Loss，只保留有梯度的项】 ==================
-        # loss = 0.0
-        # for w, v in losses.values():
-        #     # 只有当 v 是张量且有梯度时，才加进去
-        #     if isinstance(v, torch.Tensor) and v.requires_grad:
-        #         loss = loss + w * v
-        #     elif isinstance(v, torch.Tensor):
-        #         # 如果没有梯度，只加它的数值（不影响反向传播）
-        #         loss = loss + w * v.detach()
-        # # ==================================================================
+            writer.add_scalar("train/language_step", language_step, global_step)
 
 
         if dist.is_initialized():
@@ -272,7 +317,7 @@ def train_one_epoch(
             step_time = torch.tensor(0.0, device=rank)
             log_time = torch.tensor(0.0, device=rank)
 
-    return global_step
+    return global_step, language_step
 
 
 def add_to_dict_with_count(values, counts, key, val):
@@ -295,7 +340,7 @@ def write_scalar_average(writer, key, value, count, step, rank, use_ddp):
             writer.add_scalar(key, val.item(), step)
 
 
-def eval_one_epoch(loader, model, writer, epoch, global_step, cfg):
+def eval_one_epoch(loader, model, writer, epoch, global_step, language_step, cfg):
     global handler_called
     rank = 0
     ws = 1
@@ -333,7 +378,11 @@ def eval_one_epoch(loader, model, writer, epoch, global_step, cfg):
 
             if cfg.train.model_name == "diffusion":
                 _, _, stats_recon = model(data, eval=True)
-            loss = sum([w * v for w, v in losses.values()])
+            loss, _, _ = compute_weighted_loss(
+                losses,
+                language_step,
+                use_language_schedule=model_uses_language_conditioning(model),
+            )
             losses["all_loss"] = (1, loss.detach())
         step_time += time() - start
         start = time()
@@ -501,6 +550,7 @@ def train(rank, cfg):
 
     init_epoch = 0
     init_batch_idx = 0
+    init_language_step = 0
 
     logger.info(f"Attempting to load checkpoint from {cfg.train.checkpoint}")
     try:
@@ -508,12 +558,23 @@ def train(rank, cfg):
             if os.path.exists(cfg.train.checkpoint):
                 ckpt = torch.load(cfg.train.checkpoint, map_location="cpu")
                 init_epoch = ckpt["epoch"]
+                has_language_state = checkpoint_has_language_state(ckpt)
                 model.load_state_dict(ckpt["model"], strict=False)##############################
                 # 2. 注释掉或删掉加载 optimizer 的代码！
                 # 因为我们的 trainable_params 已经彻底换了，旧的 optimizer 不能用了
                 #optimizer.load_state_dict(ckpt["optimizer"])
                 logger.info(f"Loading from checkpoint {cfg.train.checkpoint}")
                 init_batch_idx = ckpt["batch_idx"] if "batch_idx" in ckpt else 0
+                if "language_step" in ckpt:
+                    init_language_step = ckpt["language_step"]
+                elif has_language_state:
+                    init_language_step = None
+                else:
+                    init_language_step = 0
+                    logger.info(
+                        "Checkpoint has no Qwen/LoRA language weights; "
+                        "language anchor warmup will start from step 0."
+                    )
             else:
                 logger.warning(f"Checkpoint file not found {cfg.train.checkpoint}")
     except (RuntimeError, EOFError) as e:
@@ -538,11 +599,22 @@ def train(rank, cfg):
 
         ckpt = torch.load(ckpt_file, map_location="cpu")
         init_epoch = ckpt["epoch"]
+        has_language_state = checkpoint_has_language_state(ckpt)
         model.load_state_dict(ckpt["model"], strict=False)  ##############################
         #optimizer.load_state_dict(ckpt["optimizer"])
         #注释掉或删掉加载 optimizer 的代码！
         logger.info(f"Loading from checkpoint {ckpt_file}")
         init_batch_idx = ckpt["batch_idx"] if "batch_idx" in ckpt else 0
+        if "language_step" in ckpt:
+            init_language_step = ckpt["language_step"]
+        elif has_language_state:
+            init_language_step = None
+        else:
+            init_language_step = 0
+            logger.info(
+                "Checkpoint has no Qwen/LoRA language weights; "
+                "language anchor warmup will start from step 0."
+            )
 
     batch_idx = init_batch_idx
 
@@ -566,11 +638,13 @@ def train(rank, cfg):
         logger.info(f"Saved training configuration to {config_save_path}")
 
     global_step = init_epoch * len(train_loader) + batch_idx
+    language_step = global_step if init_language_step is None else init_language_step
     start = time()
 
     logger.info(
         f"Training starting at epoch {init_epoch+1} and batch index {batch_idx}"
     )
+    logger.info(f"Language warmup step starts at {language_step}")
 
     for epoch in range(init_epoch, cfg.train.num_epochs):
 
@@ -579,7 +653,7 @@ def train(rank, cfg):
         if use_ddp:
             train_sampler.set_epoch(epoch)
 
-        global_step = train_one_epoch(
+        global_step, language_step = train_one_epoch(
             train_loader,
             model,
             optimizer,
@@ -587,6 +661,7 @@ def train(rank, cfg):
             writer,
             epoch + 1,
             global_step,
+            language_step,
             cfg,
             batch_idx,
             rank,
@@ -595,17 +670,38 @@ def train(rank, cfg):
         batch_idx = 0  # Reset to 0 after first (and every) epoch
 
         if (epoch + 1) % cfg.train.save_freq == 0 and rank == 0:
-            save_model(epoch + 1, model, optimizer, cfg.train.log_dir, use_ddp)
+            save_model(
+                epoch + 1,
+                model,
+                optimizer,
+                cfg.train.log_dir,
+                use_ddp,
+                extra_state={"language_step": language_step},
+            )
             os.system(f"rm -rf {os.path.join(cfg.train.log_dir, 'last.pth')}")
             save_model(
-                epoch + 1, model, optimizer, cfg.train.log_dir, use_ddp, name="last"
+                epoch + 1,
+                model,
+                optimizer,
+                cfg.train.log_dir,
+                use_ddp,
+                name="last",
+                extra_state={"language_step": language_step},
             )
 
         if (epoch + 1) % cfg.train.eval_freq == 0 or cfg.data.prefiltering:
             model.eval()
             if use_ddp:
                 valid_sampler.set_epoch(epoch)
-            eval_one_epoch(valid_loader, model, writer, epoch + 1, global_step, cfg)
+            eval_one_epoch(
+                valid_loader,
+                model,
+                writer,
+                epoch + 1,
+                global_step,
+                language_step,
+                cfg,
+            )
 
         if cfg.data.prefiltering:
             logger.info(

@@ -39,7 +39,7 @@ from grasp_gen.models.ptv3.ptv3 import PointTransformerV3
 from grasp_gen.robot import get_gripper_info
 from grasp_gen.utils.logging_config import get_logger
 from grasp_gen.models.model_utils import load_pretrained_checkpoint_to_dict
-# from grasp_gen.models.clip_text_encoder import TextEncoder  # <-- 加上这行#########
+from grasp_gen.models.clip_text_encoder import TextEncoder
 from grasp_gen.models.qwen_text_encoder import QwenTextEncoder
 
 
@@ -100,16 +100,25 @@ class GraspGenDiscriminator(nn.Module):
         self.lang_proj_dim = lang_proj_dim if use_language_conditioning else 0
 
         if self.use_language_conditioning:
+            self.clip_text_encoder = TextEncoder(clip_backbone)
+            self.clip_text_projection = nn.Linear(
+                self.clip_text_encoder.embed_dim,
+                lang_proj_dim,
+            )
+            for p in self.clip_text_encoder.parameters():
+                p.requires_grad = False
+            for p in self.clip_text_projection.parameters():
+                p.requires_grad = False
+
             self.qwen_text_encoder = QwenTextEncoder(
                 model_id="/home/zyp/models/qwen/Qwen2___5-3B-Instruct",
                 target_dim=lang_proj_dim,
                 use_4bit=True
             )
-            # 【核心安全锁 1】：绝对冻结 Qwen！判别器只能用特征，不能反向修改它！
-            for p in self.qwen_text_encoder.parameters(): 
-                p.requires_grad = False
-                
-            logger.info(f"Discriminator Language conditioning enabled: Qwen Mode! (Frozen)")
+            logger.info(
+                "Discriminator Language conditioning enabled: "
+                f"CLIP '{clip_backbone}' anchor -> Qwen trainable features"
+            )
 
 
         # if self.use_language_conditioning:
@@ -336,13 +345,20 @@ class GraspGenDiscriminator(nn.Module):
         
         # ==== 新增：将语言特征拼接到 total_embedding ====#
         if self.use_language_conditioning:
-            if "natural_text" not in data:
-                raise ValueError("Discriminator: Language conditioning is enabled but 'natural_text' key is missing.")
-            
-            with torch.no_grad(): # 【核心安全锁 2】：在此处彻底切断梯度回传给 Qwen
-                text_feat = self.qwen_text_encoder(data["natural_text"])
-                
+            if "strict_text" not in data or "natural_text" not in data:
+                raise ValueError(
+                    "Discriminator: language conditioning requires "
+                    "'strict_text' and 'natural_text'."
+                )
+
+            with torch.no_grad():
+                clip_feat = self.clip_text_encoder(data["strict_text"])
+                clip_feat = self.clip_text_projection(clip_feat)
+                clip_feat = clip_feat[mask_batch]
+
+            text_feat = self.qwen_text_encoder(data["natural_text"])
             text_feat = text_feat[mask_batch]
+            data["temp_anchor_loss"] = F.mse_loss(text_feat, clip_feat)
             total_embedding = torch.cat([total_embedding, text_feat], dim=-1)
         # =================================================
         
@@ -360,6 +376,9 @@ class GraspGenDiscriminator(nn.Module):
         logits = self.prediction_head(total_embedding)
 
         losses, outputs, stats = {}, {}, {}
+        if "temp_anchor_loss" in data:
+            losses["qwen_anchor_loss"] = (10.0, data["temp_anchor_loss"])
+
         outputs["logits"] = logits.reshape(
             [num_objects_in_batch, num_grasps_per_batch, 1]
         )

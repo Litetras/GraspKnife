@@ -176,7 +176,16 @@ def build_optimizer(cfg, model):
     return optimizer
 
 
-def save_model(epoch, model, optimizer, log_dir, use_ddp, name=None, batch_idx=-1):
+def save_model(
+    epoch,
+    model,
+    optimizer,
+    log_dir,
+    use_ddp,
+    name=None,
+    batch_idx=-1,
+    extra_state=None,
+):
     if use_ddp:
         model_state = model.module.state_dict()
     else:
@@ -187,6 +196,8 @@ def save_model(epoch, model, optimizer, log_dir, use_ddp, name=None, batch_idx=-
 
     if batch_idx != -1:
         ckpt["batch_idx"] = batch_idx
+    if extra_state:
+        ckpt.update(extra_state)
     torch.save(ckpt, f"{log_dir}/{name}.pth")
 
 
