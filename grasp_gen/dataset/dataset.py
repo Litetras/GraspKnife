@@ -88,6 +88,43 @@ OBJECT_ID2NAME = {
 
 OBJECT_NAME2ID = {v: k for k, v in OBJECT_ID2NAME.items()}
 
+PASS_TASK_ALLOWED_DIRECTIONS = {
+    "brush_passing": {
+        "object": "brush",
+        "part": "head",
+        "directions": {
+            "up": [0.0, -1.0, 0.0],
+            "down": [0.0, 1.0, 0.0],
+        },
+    },
+    "hammer_passing": {
+        "object": "hammer",
+        "part": "head",
+        "directions": {
+            "up": [0.0, -1.0, 0.0],
+            "down": [0.0, 1.0, 0.0],
+        },
+    },
+    "drill_passing": {
+        "object": "drill",
+        "part": "head",
+        "directions": {
+            "left": [0.0, 0.0, 1.0],
+            "right": [0.0, 0.0, -1.0],
+            "front": [-1.0, 0.0, 0.0],
+        },
+    },
+    "spoon_passing": {
+        "object": "spoon",
+        "part": "head",
+        "directions": {
+            "left": [0.0, 1.0, 0.0],
+            "right": [0.0, -1.0, 0.0],
+            "front": [1.0, 0.0, 0.0],
+        },
+    },
+}
+
 SEMANTIC_REGIONS = {"handle", "head", "blade", "rim", "shaft"}
 SEMANTIC_ORIENTATIONS = {
     "up",
@@ -201,6 +238,51 @@ def parse_semantic_scene_key(scene_key):
         return "_".join(parts[:-2]), last2, last1
 
     return None
+
+
+def load_first_existing_json(candidate_paths, label):
+    for path in candidate_paths:
+        if path is None:
+            continue
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                logger.info(f"成功加载{label}: {path}")
+                return data, path
+            except Exception as e:
+                logger.error(f"读取{label}失败: {path}, err={e}")
+    logger.warning(f"未找到{label}，将使用默认文本。候选路径: {candidate_paths}")
+    return {}, None
+
+
+def normalize_text_templates(value):
+    if value is None:
+        return []
+    if isinstance(value, str):
+        value = value.strip()
+        return [value] if value else []
+    if isinstance(value, list):
+        return [x.strip() for x in value if isinstance(x, str) and x.strip()]
+    if isinstance(value, dict):
+        for key in ["natural_text", "natural_texts", "templates", "texts", "task1"]:
+            if key in value:
+                return normalize_text_templates(value[key])
+    return []
+
+
+def format_text_template(template, tool, direction, part, strict_text):
+    values = {
+        "tool": tool,
+        "direction": direction,
+        "part": part,
+        "strict_text": strict_text,
+    }
+    try:
+        text = template.format(**values)
+    except (KeyError, IndexError, ValueError):
+        text = template
+    return " ".join(text.split())
 
 
 def get_cache_path(cache_dir: str, root_dir: str) -> str:
@@ -538,20 +620,24 @@ class PickDataset(Dataset):
        # === 👇 添加以下代码 👇 ===#################################################666
        # ================= 新增：读取 JSON 任务文本 =================
         self.tasks = tasks  # 保存 yaml 传进来的 tasks (例如 ['up'])
-        self.task_texts = {}
-        
-        # 直接使用 Docker 内部映射好的绝对路径
-        task_text_path = "/results/tutorial/task_texts.json" #################注意：这个路径需要和 Docker 内部的实际路径一致
-        
-        if os.path.exists(task_text_path):
-            try:
-                with open(task_text_path, "r", encoding="utf-8") as f:
-                    self.task_texts = json.load(f)
-                logger.info(f"成功加载任务文本字典: {task_text_path}")
-            except Exception as e:
-                logger.error(f"读取 task_texts.json 失败: {e}")
-        else:
-            logger.warning(f"未找到任务文本文件: {task_text_path}，将使用默认文本。")
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        self.task_texts, self.task_text_path = load_first_existing_json(
+            [
+                os.environ.get("GRASPGEN_TASK_TEXTS_PATH"),
+                "/results/tutorial/task_texts.json",
+                os.path.join(repo_root, "tutorials", "task_texts.json"),
+            ],
+            "任务文本字典 task_texts.json",
+        )
+        self.natural_texts, self.natural_text_path = load_first_existing_json(
+            [
+                os.environ.get("GRASPGEN_NATURAL_TEXTS_PATH"),
+                "/results/tutorial/natural_texts.json",
+                os.path.join(repo_root, "tutorials", "natural_texts.json"),
+            ],
+            "自然语言模板 natural_texts.json",
+        )
+        self._missing_natural_text_keys = set()
         # =========================================================
 
         self.prob_point_cloud = prob_point_cloud
@@ -657,18 +743,7 @@ class PickDataset(Dataset):
 
         self.load_patch = load_patch
         # ================= 新增：读取 JSON 任务文本 =================##############
-        self.tasks = tasks  # 保存 yaml 传进来的 tasks (例如 ['up'])
-        self.task_texts = {}
-        task_text_path = "/results/tutorial/task_texts.json"# 假设文件放在 root_dir 下
-        if os.path.exists(task_text_path):
-            try:
-                with open(task_text_path, "r", encoding="utf-8") as f:
-                    self.task_texts = json.load(f)
-                logger.info(f"成功加载任务文本字典: {task_text_path}")
-            except Exception as e:
-                logger.error(f"读取 task_texts.json 失败: {e}")
-        else:
-            logger.warning(f"未找到任务文本文件: {task_text_path}，将使用默认文本。")
+        # self.task_texts 和 self.natural_texts 已在初始化前段加载，这里保留注释作为路径说明。
         # =========================================================##################
 
 
@@ -1688,7 +1763,7 @@ class ObjectPickDataset(PickDataset):
         # 1. 获取纯净的物体名称 (全转小写方便匹配)
         obj_name = os.path.basename(self.scenes[idx]).split('.')[0].lower()
         
-        # 2. 提取死板的部位和方向标签 (给老教师 CLIP 听的 strict_text)
+        # 2. 提取文件名里的部位和姿态标签。strict_text 必须保持和 CLIP 训练时一致。
         parsed_text = self.scene_semantics.get(self.scenes[idx])
         if parsed_text is not None:
             _, part, direction = parsed_text
@@ -1709,53 +1784,69 @@ class ObjectPickDataset(PickDataset):
         strict_text = f"{direction} {part}".strip()
         outputs["strict_text"] = strict_text  # 存入 CLIP 的专属锚点
 
-        # 3. 提取工具种类 (Hammer 还是 Knife)
-        tool = "hammer" if "hammer" in obj_name else ("knife" if "knife" in obj_name else "object")
+        # 3. 从 JSON 读取 Qwen 的自然语言模板；读不到时再走安全兜底。
+        object_name, _ = self.scene_object_categories.get(self.scenes[idx], (None, -1))
+        tool = object_name or "object"
+        direction_part = "_".join([x for x in [direction, part] if x])
+        natural_text_keys = [x for x in [
+            obj_name,
+            "_".join([x for x in [tool, direction, part] if x]),
+            "_".join([x for x in [tool, part, direction] if x]),
+            direction_part,
+            "_".join([x for x in [tool, direction] if x]),
+            "_".join([x for x in [tool, part] if x]),
+        ] if x]
 
-        # 4. 根据工具种类和部位，动态生成【隐式意图】自然语言
         natural_templates = []
-        
-        if tool == "knife":
-            if part == "handle":
-                if direction == "up":
-                    natural_templates = [
-                        "Grasp the knife to cut.",           # 纯隐式：切菜
-                        "I need to chop these vegetables.",  # 纯隐式意图
-                        "Pick up the knife from the top."    # 显式兜底
-                    ]
-                else: # down handle
-                    natural_templates = [
-                        "Hand me the knife safely.",         # 纯隐式：递送
-                        "Pass the knife to me.",             # 纯隐式：传递
-                        "Hold the knife from underneath."    # 显式兜底
-                    ]
-            elif part == "blade":
-                natural_templates = [
-                    "Pinch the blade to pass it to me.",
-                    "Hold the flat side of the blade safely."
-                ]
-                
-        elif tool == "hammer":
-            if part == "handle":
-                if direction == "up":
-                    natural_templates = [
-                        "Grasp the hammer to pin.",          # 纯隐式：敲击
-                        "I need to pound this nail in.",     # 纯隐式意图
-                        "Hold the hammer by the top handle." # 显式兜底
-                    ]
-                else: # down handle
-                    natural_templates = [
-                        "Grasp the hammer to pull the nail.",# 纯隐式：起钉子
-                        "Hand me the hammer.",               # 纯隐式：递送
-                        "Hold the hammer from the bottom."   # 显式兜底
-                    ]
+        for text_key in natural_text_keys:
+            natural_templates = normalize_text_templates(
+                self.natural_texts.get(text_key)
+            )
+            if natural_templates:
+                break
 
-        # 兜底：如果都没有匹配上，给个基础的
+        # 兜底：如果 JSON 没覆盖当前 key，只使用物体/部位，避免把姿态方向写进自然语言。
         if not natural_templates:
-            natural_templates = [f"Grasp the {direction} {part} of the {tool}."]
+            missing_key = natural_text_keys[0] if natural_text_keys else obj_name
+            if missing_key not in self._missing_natural_text_keys:
+                logger.warning(
+                    "[NATURAL TEXT] 未找到任务自然语言模板 scene=%s, keys=%s",
+                    self.scenes[idx],
+                    natural_text_keys,
+                )
+                self._missing_natural_text_keys.add(missing_key)
+            if part:
+                natural_templates = [f"Grasp the {tool} by the {part} for this task."]
+            else:
+                natural_templates = [f"Grasp the {tool} for this task."]
             
-        # 5. 随机挑选一句自然语言，存入 natural_text (Qwen 专属)
-        outputs["natural_text"] = random.choice(natural_templates)
+        # 4. 随机挑选一句自然语言，存入 natural_text (Qwen 专属)
+        outputs["natural_text"] = format_text_template(
+            random.choice(natural_templates),
+            tool=tool,
+            direction=direction,
+            part=part,
+            strict_text=strict_text,
+        )
+
+        outputs["pass_task_name"] = ""
+        outputs["pass_task_direction_vectors"] = torch.empty(0, 3, dtype=torch.float32)
+        for task_name, task_cfg in PASS_TASK_ALLOWED_DIRECTIONS.items():
+            if (
+                tool == task_cfg["object"]
+                and part == task_cfg["part"]
+                and direction in task_cfg["directions"]
+            ):
+                canonical_dirs = np.array(
+                    list(task_cfg["directions"].values()), dtype=np.float32
+                )
+                rotation = T_aug[:3, :3] if self.rotation_augmentation else np.eye(3)
+                outputs["pass_task_name"] = task_name
+                outputs["pass_task_direction_vectors"] = torch.from_numpy(
+                    (rotation @ canonical_dirs.T).T
+                ).float()
+                break
+
         # ===================================================================
 
         self.timing_profiler.log_if_needed(self.scenes[idx])
