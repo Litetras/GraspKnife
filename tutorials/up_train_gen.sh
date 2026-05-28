@@ -3,7 +3,7 @@
 # Fixed parameters
 export NGPU=1
 export NWORKER=6
-export NEPOCH=12000 #>11000 13000  
+export NEPOCH=14000 #>11000 13000  
 export BATCH=8
 export PRINT_FREQ=10
 export PLOT_FREQ=10
