@@ -410,6 +410,18 @@ class GraspGenGenerator(nn.Module):
                 target_dim=lang_proj_dim, 
                 use_4bit=True
             )
+            # A small residual bridge lets Qwen features adapt to the frozen
+            # CLIP-conditioned diffusion head without changing the generator
+            # backbone itself. Zero init keeps the first step identical to the
+            # previous Qwen path, then the adapter learns only the needed delta.
+            self.language_adapter = nn.Sequential(
+                nn.LayerNorm(lang_proj_dim),
+                nn.Linear(lang_proj_dim, lang_proj_dim * 2),
+                nn.GELU(),
+                nn.Linear(lang_proj_dim * 2, lang_proj_dim),
+            )
+            nn.init.zeros_(self.language_adapter[-1].weight)
+            nn.init.zeros_(self.language_adapter[-1].bias)
 
 ########################################################QWEN########
 
@@ -664,15 +676,16 @@ class GraspGenGenerator(nn.Module):
                 # 2. 提取学生 Qwen 的特征 (带梯度，准备接管世界)
                 qwen_feat = self.qwen_text_encoder(data["natural_text"])
                 qwen_feat = qwen_feat[mask_batch]
+                adapted_text_feat = qwen_feat + self.language_adapter(qwen_feat)
 
                 # 3. 【你的核心创新】：特征锚定 Loss (Feature Anchoring)
-                # 计算它俩的距离，直接塞进 losses 字典！权重给个 10.0 作为强力约束。
+                # Anchor the exact feature consumed by the frozen diffusion head.
 
-                distill_loss = torch.nn.functional.mse_loss(qwen_feat, clip_feat)
+                distill_loss = torch.nn.functional.mse_loss(adapted_text_feat, clip_feat)
                 data["temp_anchor_loss"] = distill_loss # <--- 临时存在 data 里过渡一下
 
-                # 4. 勇敢地下场实操：永远把 Qwen 的特征喂给 DiT，让它去吃真实的物理梯度！
-                text_feat = qwen_feat
+                # 4. 将适配后的 Qwen 特征喂给冻结的 DiT。
+                text_feat = adapted_text_feat
                 object_embedding = torch.cat([object_embedding, text_feat], dim=-1)
 # ====================================================================
 
