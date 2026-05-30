@@ -941,9 +941,12 @@ class GraspGenGenerator(nn.Module):
                     if "strict_text" not in data or "natural_text" not in data:
                         raise ValueError("Missing language keys in data")
 
-                    # 既然联合训练，直接让 Qwen 挑大梁！
-                    text_feat = self.qwen_text_encoder(data["natural_text"]) 
-                    text_feat = text_feat[mask_batch]
+                    # Keep inference on the same language path used in training:
+                    # Qwen features are translated by the residual adapter before
+                    # they enter the frozen diffusion head.
+                    qwen_feat = self.qwen_text_encoder(data["natural_text"]) 
+                    qwen_feat = qwen_feat[mask_batch]
+                    text_feat = qwen_feat + self.language_adapter(qwen_feat)
                     object_embedding = torch.cat([object_embedding, text_feat], dim=-1)
 
 
