@@ -29,7 +29,8 @@ TASK_RULES = {
     ],
     "Drill": [
         {"task": "Drill operation", "region": "Handle", "orientations": ["Up"]},
-        {"task": "Drill passing", "region": "Head", "orientations": ["Left", "Right", "Front"]}
+        {"task": "Drill passing", "region": "Head", "orientations": ["Left", "Right", "Front"]},
+        {"task": "Drill passing", "region": "Handle", "orientations": ["Down"]}
     ],
     "Screwdriver": [
         {"task": "Screwdriver driving", "region": "Handle", "orientations": ["Up"]},
@@ -282,7 +283,8 @@ def filter_and_convert_grasps(dataset_json_path, yaml_dir, output_dir):
     print("="*70)
 
 if __name__ == "__main__":
-    DATASET_JSON = "final_task_oriented_dataset.json"  
-    YAML_INPUT_DIR = "/home/zyp/Desktop/grasps"  
-    JSON_OUTPUT_DIR = "/home/zyp/Desktop/task_oriented_grasps_json"  
+    DATASET_ROOT = "/home/zyp/pan1/#LODGrasp核心权重与数据集/7个物体数据集"
+    DATASET_JSON = "/home/zyp/GraspGen/final_task_oriented_dataset.json"
+    YAML_INPUT_DIR = os.path.join(DATASET_ROOT, "grasps")
+    JSON_OUTPUT_DIR = os.path.join(DATASET_ROOT, "task_oriented_grasps_json")
     filter_and_convert_grasps(DATASET_JSON, YAML_INPUT_DIR, JSON_OUTPUT_DIR)
