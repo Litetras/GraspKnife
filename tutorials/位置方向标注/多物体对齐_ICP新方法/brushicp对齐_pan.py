@@ -7,12 +7,15 @@ import time
 import json
 
 # ================= 配置区 =================
-SOURCE_DIR = "/home/zyp/Desktop/objaverse_dataset/pans"
+ALIGN_JOBS = [
+    {
+        "category": "spatulas",
+        "source_dir": "/home/zyp/Desktop/objaverse_dataset/spatulas",
+        "ref_filename": "spatula_1.obj",
+    },
+]
 
-# 作为绝对基准的 Pan
-REF_FILENAME = "pan_6c8fb584.obj"
-
-# 是否在最后替换原始 pans 文件夹
+# 是否在最后替换原始文件夹
 REPLACE_ORIGINAL = True
 
 # 是否保留临时对齐文件夹
@@ -67,7 +70,7 @@ def preprocess_mesh_to_origin(mesh, ref_size):
     对待对齐模型做基础预处理：
     1. 移到原点
     2. PCA 主惯性轴粗对齐
-    3. 缩放到基准 pan 的尺寸
+    3. 缩放到基准模型的尺寸
     4. 再次居中
     """
     mesh = mesh.copy()
@@ -97,7 +100,7 @@ def preprocess_mesh_to_origin(mesh, ref_size):
 
 def safe_backup_source_dir(source_dir):
     """
-    备份整个 pans 文件夹。
+    备份整个源文件夹。
     """
     parent_dir = os.path.dirname(source_dir)
     folder_name = os.path.basename(source_dir)
@@ -108,7 +111,7 @@ def safe_backup_source_dir(source_dir):
         f"{folder_name}_backup_before_align_{timestamp}"
     )
 
-    print("\n--- 步骤 0: 备份原始 pans 文件夹 ---")
+    print("\n--- 步骤 0: 备份原始文件夹 ---")
     print(f"📦 原始目录: {source_dir}")
     print(f"🛟 备份目录: {backup_dir}")
 
@@ -120,9 +123,9 @@ def safe_backup_source_dir(source_dir):
 
 def replace_original_folder(source_dir, temp_aligned_dir):
     """
-    用对齐后的文件夹替换原始 pans 文件夹。
+    用对齐后的文件夹替换原始文件夹。
     """
-    print("\n--- 步骤 3: 替换原始 pans 文件夹 ---")
+    print("\n--- 步骤 3: 替换原始文件夹 ---")
     print(f"🗑️ 即将删除原始目录: {source_dir}")
     print(f"📥 使用对齐目录替换: {temp_aligned_dir}")
 
@@ -135,34 +138,34 @@ def replace_original_folder(source_dir, temp_aligned_dir):
     print(f"📁 当前可继续使用路径: {source_dir}")
 
 
-def main():
-    if not os.path.exists(SOURCE_DIR):
-        print(f"❌ 找不到源目录: {SOURCE_DIR}")
-        return
+def align_one_category(category, source_dir, ref_filename):
+    if not os.path.exists(source_dir):
+        print(f"❌ 找不到源目录: {source_dir}")
+        return {"category": category, "success": 0, "fail": 0, "backup_dir": None}
 
-    ref_path_check = os.path.join(SOURCE_DIR, REF_FILENAME)
+    ref_path_check = os.path.join(source_dir, ref_filename)
     if not os.path.exists(ref_path_check):
         print(f"❌ 找不到基准模型: {ref_path_check}")
-        return
+        return {"category": category, "success": 0, "fail": 0, "backup_dir": None}
 
     print("=" * 70)
-    print("🍳 启动 Pan 专属模型对齐 + 原路径覆盖脚本")
-    print(f"📌 基准模型: {REF_FILENAME}")
-    print(f"📁 原始 Pan 目录: {SOURCE_DIR}")
+    print(f"🔧 启动 {category} 模型对齐 + 原路径覆盖脚本")
+    print(f"📌 基准模型: {ref_filename}")
+    print(f"📁 原始目录: {source_dir}")
     print("=" * 70)
 
-    # 0. 先完整备份原始 pans 文件夹
-    backup_dir = safe_backup_source_dir(SOURCE_DIR)
+    # 0. 先完整备份原始文件夹
+    backup_dir = safe_backup_source_dir(source_dir)
 
-    parent_dir = os.path.dirname(SOURCE_DIR)
+    parent_dir = os.path.dirname(source_dir)
     timestamp = time.strftime("%Y%m%d_%H%M%S")
-    temp_aligned_dir = os.path.join(parent_dir, f"pans_aligned_tmp_{timestamp}")
+    temp_aligned_dir = os.path.join(parent_dir, f"{category}_aligned_tmp_{timestamp}")
     os.makedirs(temp_aligned_dir, exist_ok=True)
 
-    print("\n--- 步骤 1: 加载基准 Pan 模型 ---")
+    print("\n--- 步骤 1: 加载基准模型 ---")
 
     # 注意：从备份目录读取，避免后面替换时影响源文件
-    ref_path = os.path.join(backup_dir, REF_FILENAME)
+    ref_path = os.path.join(backup_dir, ref_filename)
 
     ref_obj = trimesh.load(ref_path, force="mesh")
     ref_mesh = as_mesh(ref_obj)
@@ -180,7 +183,7 @@ def main():
     print(f"   最大尺寸: {ref_size:.6f}")
 
     # 把基准模型也导出到临时对齐目录
-    ref_out_path = os.path.join(temp_aligned_dir, REF_FILENAME)
+    ref_out_path = os.path.join(temp_aligned_dir, ref_filename)
     ref_mesh.export(ref_out_path)
     print(f"✅ 基准模型已写入临时对齐目录: {ref_out_path}")
 
@@ -188,11 +191,11 @@ def main():
     candidate_rotations = generate_24_axis_rotations()
     print(f"✅ 已生成 {len(candidate_rotations)} 种候选轴向旋转。")
 
-    print("\n--- 步骤 2: 对齐其它 Pan 模型 ---")
+    print("\n--- 步骤 2: 对齐其它模型 ---")
 
     mesh_files = [
         f for f in os.listdir(backup_dir)
-        if f.lower().endswith((".obj", ".glb")) and f != REF_FILENAME
+        if f.lower().endswith((".obj", ".glb")) and f != ref_filename
     ]
 
     mesh_files = sorted(mesh_files)
@@ -291,7 +294,7 @@ def main():
             fail_count += 1
 
     # 保存对齐日志
-    log_path = os.path.join(temp_aligned_dir, "pan_alignment_log.json")
+    log_path = os.path.join(temp_aligned_dir, f"{category}_alignment_log.json")
     with open(log_path, "w", encoding="utf-8") as f:
         json.dump(transform_log, f, indent=4)
 
@@ -303,7 +306,7 @@ def main():
 
     # 4. 替换原始目录
     if REPLACE_ORIGINAL:
-        replace_original_folder(SOURCE_DIR, temp_aligned_dir)
+        replace_original_folder(source_dir, temp_aligned_dir)
 
         if not KEEP_TEMP_ALIGNED_DIR:
             print("\n--- 步骤 4: 清理临时对齐目录 ---")
@@ -311,16 +314,44 @@ def main():
             print(f"✅ 已删除临时目录: {temp_aligned_dir}")
 
     print("\n" + "=" * 70)
-    print("🎉 Pan 对齐完成！")
+    print(f"🎉 {category} 对齐完成！")
     print(f"🛟 原始模型备份在: {backup_dir}")
-    print(f"📁 当前模型路径仍然是: {SOURCE_DIR}")
+    print(f"📁 当前模型路径仍然是: {source_dir}")
     print("=" * 70)
 
     print("\n⚠️ 接下来建议重新生成这些 JSON：")
-    print("   1. pan_dataset_boundaries_auto.json")
-    print("   2. pan_category_grasp_directions.json")
-    print("   3. final_pan_task_oriented_dataset.json")
+    print("   1. 位置边界 JSON")
+    print("   2. 方向标注 JSON")
+    print("   3. final_task_oriented_dataset JSON")
     print("因为旧 JSON 是基于未对齐模型生成的。")
+
+    return {
+        "category": category,
+        "success": success_count,
+        "fail": fail_count,
+        "backup_dir": backup_dir,
+    }
+
+
+def main():
+    summaries = []
+    for job in ALIGN_JOBS:
+        summaries.append(
+            align_one_category(
+                category=job["category"],
+                source_dir=job["source_dir"],
+                ref_filename=job["ref_filename"],
+            )
+        )
+
+    print("\n" + "=" * 70)
+    print("全部类别对齐完成汇总")
+    for item in summaries:
+        print(
+            f"- {item['category']}: 成功 {item['success']} | 失败 {item['fail']} | "
+            f"备份 {item['backup_dir']}"
+        )
+    print("=" * 70)
 
 
 if __name__ == "__main__":

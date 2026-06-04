@@ -1,70 +1,187 @@
+import argparse
 import shutil
 from pathlib import Path
 
-def copy_and_match_objs():
-    # 1. 源目录：存放最原始的 hammer_1.obj, kitchen_knife_2.obj 等
-    SOURCE_DIR = Path("/home/zyp/Desktop/cleaned_aligned")
-    
-    # 2. JSON 目录：存放 _grasps.json 的目录（仅用来读取文件名作为参照）
-    JSON_DIR = Path("/home/zyp/Desktop/zyp_dataset7/tutorial/tutorial_grasp_dataset")
-    
-    # 3. 输出目录：专门用来存放匹配复制好的 obj 文件的目录 【修改的核心处】
-    OUTPUT_OBJ_DIR = Path("/home/zyp/Desktop/zyp_dataset7/tutorial/tutorial_object_dataset")
 
-    # 确保输出目录存在，如果没有则自动创建
-    OUTPUT_OBJ_DIR.mkdir(parents=True, exist_ok=True)
+DATASET_ROOT = Path("/home/zyp/pan1/#LODGrasp核心权重与数据集/7个物体数据集")
 
-    print(f"开始扫描 JSON 并匹配复制 OBJ...\n")
+# 原始物体 OBJ 根目录
+DATASET_OBJ_ROOT = DATASET_ROOT / "dataset_obj"
 
-    # 获取所有原始的 obj 文件名，作为基础模型库 (例如 ['hammer_1', 'hammer_2', ...])
-    source_objs = list(SOURCE_DIR.glob("*.obj"))
+# 任务导向抓取 JSON 根目录
+TASK_GRASP_ROOT = DATASET_ROOT / "task_oriented_grasps_json"
+
+# 输出为一个扁平 object_dataset：文件名和 grasp json stem 完全对应
+DEFAULT_OUTPUT_OBJ_DIR = DATASET_ROOT / "converted_task_object_dataset"
+
+
+CATEGORY_CONFIG = {
+    "drill": {
+        "obj_dir": "4_drills",
+        "json_dir": "4_drills",
+    },
+    "pan": {
+        "obj_dir": "7_pan",
+        "json_dir": "7_pans",
+    },
+    "fork": {
+        "obj_dir": "8_forks",
+        "json_dir": "8_forks",
+    },
+    "key": {
+        "obj_dir": "9_keys",
+        "json_dir": "9_keys",
+    },
+    "spatula": {
+        "obj_dir": "10_spatulas",
+        "json_dir": "10_spatulas",
+    },
+}
+
+
+def collect_source_objs(source_dir):
+    source_objs = sorted(source_dir.glob("*.obj"))
     if not source_objs:
-        print(f"源目录 {SOURCE_DIR} 中没有找到任何 .obj 文件！")
-        return
-        
-    # 按名字长度降序排列（非常重要！防止 kitchen_knife_10 匹配到 kitchen_knife_1）
-    base_names = sorted([f.stem for f in source_objs], key=len, reverse=True)
+        return {}, []
 
-    # 获取 JSON 目录下所有的 _grasps.json
-    json_files = list(JSON_DIR.glob("*_grasps.json"))
+    source_by_stem = {path.stem: path for path in source_objs}
+
+    # 重要：长名字优先，避免 pan_1 错配 pan_10 / pan_11。
+    source_stems = sorted(source_by_stem.keys(), key=len, reverse=True)
+    return source_by_stem, source_stems
+
+
+def match_source_stem(target_stem, source_stems):
+    for source_stem in source_stems:
+        if target_stem == source_stem or target_stem.startswith(source_stem + "_"):
+            return source_stem
+    return None
+
+
+def copy_one_category(category_name, cfg, output_dir, overwrite=False):
+    source_dir = DATASET_OBJ_ROOT / cfg["obj_dir"]
+    json_dir = TASK_GRASP_ROOT / cfg["json_dir"]
+
+    print("\n" + "=" * 70)
+    print(f"📦 类别: {category_name}")
+    print(f"OBJ 源目录 : {source_dir}")
+    print(f"JSON 目录  : {json_dir}")
+
+    if not source_dir.exists():
+        print(f"❌ OBJ 源目录不存在，跳过: {source_dir}")
+        return 0, 0, 0
+
+    if not json_dir.exists():
+        print(f"❌ JSON 目录不存在，跳过: {json_dir}")
+        return 0, 0, 0
+
+    source_by_stem, source_stems = collect_source_objs(source_dir)
+    if not source_stems:
+        print(f"❌ 未找到源 OBJ，跳过: {source_dir}")
+        return 0, 0, 0
+
+    json_files = sorted(json_dir.glob("*.json"))
     if not json_files:
-        print(f"JSON 目录 {JSON_DIR} 中没有找到任何 _grasps.json 文件！请先运行转换脚本。")
-        return
+        print(f"❌ 未找到任务导向 JSON，跳过: {json_dir}")
+        return 0, 0, 0
 
-    success_count = 0
+    copied_count = 0
+    skipped_count = 0
+    failed_count = 0
 
-    # 遍历每一个 json 文件，为它“量身定做”一个 obj
     for json_path in json_files:
-        # 获取需要匹配的名字：去掉 "_grasps.json"
-        # 例如: hammer_27_down_head_grasps.json -> hammer_27_down_head
-        target_name = json_path.name.replace("_grasps.json", "")
-        
-        # 【修改的核心处】生成的 obj 路径指向专门的 object_dataset 文件夹
-        target_obj_path = OUTPUT_OBJ_DIR / f"{target_name}.obj"
-        
-        # 如果这个 obj 已经存在了，跳过
-        if target_obj_path.exists():
+        target_stem = json_path.stem
+        target_obj_path = output_dir / f"{target_stem}.obj"
+
+        if target_obj_path.exists() and not overwrite:
+            skipped_count += 1
             continue
 
-        # 寻找它对应的原始模型是哪一个
-        matched_base = None
-        for base in base_names:
-            if target_name.startswith(base):
-                matched_base = base
-                break
-                
-        if matched_base:
-            source_obj_path = SOURCE_DIR / f"{matched_base}.obj"
-            
-            # 执行复制并重命名，存入 OUTPUT_OBJ_DIR
-            shutil.copy(source_obj_path, target_obj_path)
-            print(f"  └── [匹配成功] {matched_base}.obj -> {target_obj_path.name}")
-            success_count += 1
-        else:
-            print(f"  ⚠️ [匹配失败] 找不到 {target_name} 对应的原模型！")
+        matched_stem = match_source_stem(target_stem, source_stems)
+        if matched_stem is None:
+            print(f"  ⚠️ [匹配失败] {json_path.name} 找不到对应源 OBJ")
+            failed_count += 1
+            continue
 
-    print(f"\n匹配完成！共成功生成了 {success_count} 个对应的 obj 文件。")
-    print(f"文件已全部存入: {OUTPUT_OBJ_DIR}")
+        source_obj_path = source_by_stem[matched_stem]
+        shutil.copy2(source_obj_path, target_obj_path)
+        copied_count += 1
+        print(f"  ✅ {source_obj_path.name} -> {target_obj_path.name}")
+
+    print(
+        f"✅ {category_name} 完成: copied={copied_count}, "
+        f"skipped={skipped_count}, failed={failed_count}"
+    )
+    return copied_count, skipped_count, failed_count
+
+
+def copy_and_match_objs(categories, output_dir, overwrite=False):
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    print("=" * 70)
+    print("🚀 开始按任务导向 JSON 匹配复制 OBJ")
+    print(f"输出目录: {output_dir}")
+    print(f"处理类别: {', '.join(categories)}")
+    print(f"覆盖已有文件: {overwrite}")
+    print("=" * 70)
+
+    total_copied = 0
+    total_skipped = 0
+    total_failed = 0
+
+    for category_name in categories:
+        cfg = CATEGORY_CONFIG.get(category_name)
+        if cfg is None:
+            print(f"⚠️ 未知类别，跳过: {category_name}")
+            continue
+
+        copied, skipped, failed = copy_one_category(
+            category_name=category_name,
+            cfg=cfg,
+            output_dir=output_dir,
+            overwrite=overwrite,
+        )
+        total_copied += copied
+        total_skipped += skipped
+        total_failed += failed
+
+    print("\n" + "=" * 70)
+    print("🎉 OBJ 转换完成")
+    print(f"✅ 新复制: {total_copied}")
+    print(f"⏭️ 已存在跳过: {total_skipped}")
+    print(f"❌ 匹配失败: {total_failed}")
+    print(f"📁 输出目录: {output_dir}")
+    print("=" * 70)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="根据任务导向 grasp JSON 文件名，复制并重命名对应 OBJ。"
+    )
+    parser.add_argument(
+        "--categories",
+        nargs="+",
+        default=["drill", "pan", "fork", "key", "spatula"],
+        choices=sorted(CATEGORY_CONFIG.keys()),
+        help="要处理的类别。默认处理 drill/pan/fork/key/spatula。",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_OUTPUT_OBJ_DIR),
+        help="输出 OBJ 目录。默认写入 converted_task_object_dataset。",
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="如果目标 OBJ 已存在，则覆盖。",
+    )
+    return parser.parse_args()
+
 
 if __name__ == "__main__":
-    copy_and_match_objs()
+    args = parse_args()
+    copy_and_match_objs(
+        categories=args.categories,
+        output_dir=Path(args.output_dir),
+        overwrite=args.overwrite,
+    )

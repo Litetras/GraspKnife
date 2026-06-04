@@ -24,8 +24,8 @@ def normalize_text(text):
 
 def has_keyword(text, keyword):
     """
-    词边界匹配，避免 fork 匹配到 forklift，pan 匹配到 panel。
-    也支持多词短语，比如 spray bottle / watering can。
+    词边界匹配，避免 saw 匹配到 sawmill，key 匹配到 keyboard 的一部分。
+    支持多词短语，比如 hand saw / door key / usb flash drive。
     """
     keyword = normalize_text(keyword)
     pattern = r"(?<![a-z0-9])" + re.escape(keyword) + r"(?![a-z0-9])"
@@ -37,259 +37,289 @@ def has_any_keyword(text, keywords):
 
 
 # ==========================================
-# 多类别筛选规则
+# 三类别筛选规则
 # ==========================================
 
 categories = {
-    "trowel": {
-        "name_zh": "园艺小铲 / 泥铲 (Trowel)",
+    "hand_saw": {
+        "name_zh": "手锯 / 手动锯 (Hand Saw)",
+
+        # 强核心词：出现这些基本就是手动锯
         "strong_core_keywords": {
-            "trowel", "garden trowel", "hand trowel", "gardening trowel",
-            "planting trowel", "transplanting trowel", "soil trowel",
-            "small shovel", "garden shovel"
+            "hand saw",
+            "handsaw",
+            "manual saw",
+
+            # 木工手锯
+            "wood saw",
+            "wooden saw",
+            "woodworking saw",
+            "carpenter saw",
+            "carpentry saw",
+            "panel saw",
+            "rip saw",
+            "crosscut saw",
+            "tenon saw",
+            "back saw",
+
+            # 金属手锯
+            "hacksaw",
+            "hack saw",
+            "metal saw",
+            "junior hacksaw",
+
+            # 其它手动锯
+            "coping saw",
+            "bow saw",
+            "fret saw",
+            "pruning saw",
+            "garden saw"
         },
+
+        # 弱核心词：只有 saw 时必须配合上下文
         "weak_core_keywords": {
-            "spade", "shovel"
+            "saw"
         },
+
+        # 上下文词：强调手持、锯条、木头/金属切割
         "context_keywords": {
-            "garden", "gardening", "soil", "plant", "planting",
-            "dig", "digging", "yard", "tool", "handle", "metal",
-            "mud", "flower", "farm"
+            "hand",
+            "manual",
+            "tool",
+            "handle",
+            "blade",
+            "teeth",
+            "tooth",
+            "cut",
+            "cutting",
+            "wood",
+            "wooden",
+            "woodwork",
+            "woodworking",
+            "carpenter",
+            "carpentry",
+            "metal",
+            "iron",
+            "steel",
+            "workshop",
+            "hardware",
+            "diy",
+            "repair",
+            "garden",
+            "pruning"
         },
+
+        # 排除电锯、机器锯、工业场景、非目标物体
         "exclude_keywords": {
-            "snow shovel", "excavator", "tractor", "vehicle", "weapon",
-            "character", "monster", "toy character", "logo"
+            "chainsaw",
+            "chain saw",
+            "circular saw",
+            "table saw",
+            "miter saw",
+            "mitre saw",
+            "band saw",
+            "bandsaw",
+            "jigsaw",
+            "jig saw",
+            "reciprocating saw",
+            "sabre saw",
+            "saber saw",
+            "power saw",
+            "electric saw",
+            "machine saw",
+            "saw machine",
+
+            "sawmill",
+            "saw mill",
+            "sawhorse",
+            "saw horse",
+            "factory",
+            "industrial machine",
+
+            "saw blade only",
+            "circular blade",
+            "blade disk",
+            "blade disc",
+
+            "weapon",
+            "sword",
+            "axe",
+            "knife",
+            "character",
+            "monster",
+            "robot",
+            "vehicle",
+            "logo",
+            "sign",
+            "game"
         }
     },
 
-    "fork": {
-        "name_zh": "叉子 (Fork)",
+    "key": {
+        "name_zh": "钥匙 (Key)",
+
+        # 强核心词：明确是实体钥匙
         "strong_core_keywords": {
-            "dinner fork", "table fork", "kitchen fork", "eating fork",
-            "cutlery fork", "fork utensil", "salad fork", "dessert fork"
+            "key",
+            "door key",
+            "house key",
+            "car key",
+            "metal key",
+            "old key",
+            "antique key",
+            "skeleton key",
+            "padlock key",
+            "lock key",
+            "golden key",
+            "silver key",
+            "brass key",
+            "keychain key",
+            "key ring",
+            "keyring"
         },
+
+        # 弱核心词：key 单独出现容易误匹配键盘键，所以配合上下文
         "weak_core_keywords": {
-            "fork"
+            "key"
         },
+
+        # 上下文词：偏向真实钥匙 / 门锁 / 金属小物体
         "context_keywords": {
-            "kitchen", "cutlery", "utensil", "tableware", "silverware",
-            "food", "eat", "eating", "dining", "metal", "restaurant",
-            "plate", "spoon", "knife"
+            "lock",
+            "door",
+            "house",
+            "car",
+            "padlock",
+            "metal",
+            "brass",
+            "silver",
+            "gold",
+            "ring",
+            "keyring",
+            "keychain",
+            "unlock",
+            "security",
+            "handle",
+            "teeth"
         },
+
+        # 排除键盘键、琴键、软件 key、游戏道具等
         "exclude_keywords": {
-            "forklift", "bike", "bicycle", "motorcycle", "road",
-            "tuning fork", "pitchfork", "garden fork", "replication fork",
-            "git", "code", "tree", "branch", "weapon", "character",
-            "vehicle"
+            "keyboard",
+            "keyboard key",
+            "keycap",
+            "key cap",
+            "piano",
+            "piano key",
+            "organ key",
+            "synth",
+            "musical",
+            "typewriter",
+            "button",
+            "hotkey",
+            "shortcut",
+            "license key",
+            "product key",
+            "api key",
+            "steam key",
+            "key card",
+            "keycard",
+            "key blade",
+            "keyblade",
+            "character",
+            "monster",
+            "weapon",
+            "logo",
+            "icon",
+            "symbol",
+            "map key",
+            "legend"
         }
     },
 
-    "spray_bottle": {
-        "name_zh": "喷雾瓶 / 喷壶 (Spray Bottle)",
-        "strong_core_keywords": {
-            "spray bottle", "sprayer", "trigger sprayer", "trigger spray",
-            "pump sprayer", "pump spray bottle", "mist bottle",
-            "water sprayer"
-        },
-        "weak_core_keywords": {
-            "spray", "nozzle", "trigger"
-        },
-        "context_keywords": {
-            "bottle", "pump", "clean", "cleaning", "water",
-            "garden", "mist", "liquid", "dispenser", "plastic",
-            "handle", "sprayer"
-        },
-        "exclude_keywords": {
-            "spray paint", "paint", "graffiti", "particle", "effect",
-            "fx", "blood", "splash", "weapon", "gun", "flamethrower",
-            "character", "logo"
-        }
-    },
+    "usb_flash_drive": {
+        "name_zh": "U盘 / USB闪存盘 (USB Flash Drive)",
 
-    "watering_can": {
-        "name_zh": "浇花壶 / 洒水壶 (Watering Can)",
+        # 强核心词：明确是 U盘
         "strong_core_keywords": {
-            "watering can", "wateringcan", "watering pot",
-            "garden watering can", "metal watering can",
-            "plastic watering can"
+            "usb flash drive",
+            "flash drive",
+            "thumb drive",
+            "usb stick",
+            "memory stick",
+            "pen drive",
+            "pendrive",
+            "jump drive",
+            "usb memory",
+            "usb drive",
+            "flash disk",
+            "u disk",
+            "u-disk"
         },
-        "weak_core_keywords": {
-            "watering"
-        },
-        "context_keywords": {
-            "can", "garden", "plant", "flower", "water",
-            "spout", "handle", "gardening", "yard", "watering"
-        },
-        "exclude_keywords": {
-            "trash can", "garbage can", "soda can", "tin can",
-            "oil can", "gas can", "watering hole", "character",
-            "vehicle", "logo"
-        }
-    },
 
-    "toilet_brush": {
-        "name_zh": "马桶刷 (Toilet Brush)",
-        "strong_core_keywords": {
-            "toilet brush", "wc brush", "bathroom toilet brush",
-            "toilet cleaner brush"
-        },
+        # 弱核心词：单独 usb / drive / memory 容易误匹配
         "weak_core_keywords": {
-            "brush"
+            "usb",
+            "drive",
+            "flash",
+            "memory"
         },
-        "context_keywords": {
-            "toilet", "wc", "bathroom", "restroom", "cleaning",
-            "cleaner", "holder", "bath", "lavatory"
-        },
-        "exclude_keywords": {
-            "toothbrush", "tooth brush", "hair brush", "paint brush",
-            "makeup brush", "brushes", "broom", "character", "weapon",
-            "logo"
-        }
-    },
 
-    "squeegee": {
-        "name_zh": "刮水板 / 玻璃刮 (Squeegee)",
-        "strong_core_keywords": {
-            "squeegee", "squeege", "window squeegee", "glass squeegee",
-            "water squeegee", "shower squeegee", "floor squeegee",
-            "rubber squeegee"
-        },
-        "weak_core_keywords": {
-            "wiper", "scraper"
-        },
+        # 上下文词：强调小型便携存储设备
         "context_keywords": {
-            "window", "glass", "water", "clean", "cleaning",
-            "rubber", "shower", "bathroom", "windshield", "floor",
-            "handle"
+            "storage",
+            "data",
+            "portable",
+            "memory",
+            "flash",
+            "usb",
+            "stick",
+            "drive",
+            "connector",
+            "metal",
+            "plastic",
+            "cap",
+            "device",
+            "electronics",
+            "computer",
+            "laptop"
         },
-        "exclude_keywords": {
-            "paint scraper", "ice scraper", "weapon", "character",
-            "graffiti", "effect", "particle", "logo"
-        }
-    },
 
-    "dustpan": {
-        "name_zh": "簸箕 (Dustpan)",
-        "strong_core_keywords": {
-            "dustpan", "dust pan"
-        },
-        "weak_core_keywords": {
-            "pan"
-        },
-        "context_keywords": {
-            "broom", "sweep", "sweeping", "dust", "clean",
-            "cleaning", "trash", "garbage", "floor", "household",
-            "janitor", "handle"
-        },
+        # 排除非 U盘：线缆、接口、硬盘、鼠标键盘、充电器等
         "exclude_keywords": {
-            "frying pan", "saucepan", "cooking pan", "skillet",
-            "panda", "panther", "panel", "panorama", "weapon",
-            "character", "vehicle", "logo"
-        }
-    },
-
-    "back_scratcher": {
-        "name_zh": "痒痒挠 (Back Scratcher)",
-        "strong_core_keywords": {
-            "back scratcher", "backscratcher", "back scratching tool",
-            "itch scratcher"
-        },
-        "weak_core_keywords": {
-            "scratcher"
-        },
-        "context_keywords": {
-            "back", "itch", "scratch", "scratching", "massage",
-            "bamboo", "hand", "claw", "handle", "tool"
-        },
-        "exclude_keywords": {
-            "cat scratcher", "dog scratcher", "scratching post",
-            "scratch pad", "scratchpad", "animal", "character",
-            "monster", "weapon", "logo"
-        }
-    },
-
-    "charger": {
-        "name_zh": "手机充电头 (Charger)",
-        "strong_core_keywords": {
-            "phone charger", "mobile charger", "usb charger",
-            "wall charger", "charging brick", "power adapter",
-            "charger adapter", "battery charger", "fast charger"
-        },
-        "weak_core_keywords": {
-            "charger", "adapter"
-        },
-        "context_keywords": {
-            "phone", "mobile", "usb", "cable", "plug", "wall",
-            "socket", "power", "battery", "charging", "electronics",
-            "electric", "device", "wire"
-        },
-        "exclude_keywords": {
-            "dodge charger", "car", "vehicle", "horse", "knight",
-            "football", "team", "logo", "pokemon", "robot",
-            "weapon", "character", "spaceship"
-        }
-    },
-
-    "pizza_cutter": {
-        "name_zh": "披萨滚刀 / 披萨刀 (Pizza Cutter)",
-        "strong_core_keywords": {
-            "pizza cutter", "pizza wheel", "pizza knife",
-            "pizza slicer", "rotary pizza cutter", "pizza roller"
-        },
-        "weak_core_keywords": {
-            "cutter", "wheel", "slicer", "knife"
-        },
-        "context_keywords": {
-            "pizza", "kitchen", "food", "cut", "cutting",
-            "utensil", "blade", "handle", "restaurant"
-        },
-        "exclude_keywords": {
-            "bike wheel", "car wheel", "wheelchair", "vehicle",
-            "weapon", "sword", "character", "logo"
-        }
-    },
-
-    "peeler": {
-        "name_zh": "削皮器 / 去皮刀 (Peeler)",
-        "strong_core_keywords": {
-            "peeler", "vegetable peeler", "potato peeler",
-            "fruit peeler", "apple peeler", "kitchen peeler",
-            "y peeler", "y shaped peeler"
-        },
-        "weak_core_keywords": {
-            "peel"
-        },
-        "context_keywords": {
-            "vegetable", "potato", "carrot", "apple", "fruit",
-            "kitchen", "utensil", "tool", "blade", "handle",
-            "cook", "cooking", "food", "metal"
-        },
-        "exclude_keywords": {
-            "skin", "face", "body", "character", "monster",
-            "paint peeler", "paint", "wall", "industrial",
-            "machine", "banana peel", "orange peel", "logo"
-        }
-    },
-
-    "tiller": {
-        "name_zh": "园艺翻土器 / 耕耘机 (Tiller)",
-        "strong_core_keywords": {
-            "tiller", "garden tiller", "rototiller", "rotary tiller",
-            "soil tiller", "power tiller", "cultivator",
-            "garden cultivator"
-        },
-        "weak_core_keywords": {
-            "cultivate", "cultivator"
-        },
-        "context_keywords": {
-            "garden", "soil", "farm", "farming", "agriculture",
-            "cultivate", "rotary", "tractor", "machine", "engine",
-            "tool", "yard", "land", "digging"
-        },
-        "exclude_keywords": {
-            "boat", "ship", "rudder", "steering", "sailing",
-            "sailboat", "handlebar", "scooter", "military",
-            "training", "music", "character", "weapon", "logo"
+            "usb cable",
+            "cable",
+            "wire",
+            "charger",
+            "adapter",
+            "power adapter",
+            "usb charger",
+            "hub",
+            "usb hub",
+            "keyboard",
+            "mouse",
+            "controller",
+            "gamepad",
+            "hard drive",
+            "hdd",
+            "ssd",
+            "external hard drive",
+            "portable hard drive",
+            "disk drive",
+            "cd drive",
+            "dvd drive",
+            "floppy drive",
+            "card reader",
+            "sd card",
+            "micro sd",
+            "phone",
+            "camera",
+            "robot",
+            "vehicle",
+            "character",
+            "logo",
+            "icon",
+            "symbol"
         }
     }
 }
@@ -297,7 +327,7 @@ categories = {
 # 初始化结果字典
 final_uids = {cat: [] for cat in categories}
 
-print("正在搜集模型数据（多类别宽松筛选：强核心词直接命中，弱核心词需上下文）...")
+print("正在搜集模型数据：手锯 / 钥匙 / U盘 ...")
 
 for uid, item in annotations.items():
     # 1. 文本提取与格式化
@@ -317,7 +347,7 @@ for uid, item in annotations.items():
     raw_full_text = f"{name} {description} {tags_text}"
     full_text = normalize_text(raw_full_text)
 
-    # 2. 并行判断各类别逻辑
+    # 2. 并行判断三个类别
     for cat_key, rules in categories.items():
         has_strong_core = has_any_keyword(full_text, rules["strong_core_keywords"])
         has_weak_core = has_any_keyword(full_text, rules["weak_core_keywords"])
@@ -328,10 +358,10 @@ for uid, item in annotations.items():
         # 宽松但防误匹配的判断逻辑
         # ==========================================
         # 满足以下任意一种：
-        # 1. 出现强核心词，比如 "pizza cutter", "watering can", "dustpan"
-        # 2. 出现弱核心词，同时出现上下文词，比如 fork + kitchen / cutlery
+        # 1. 出现强核心词，例如 hand saw / door key / usb flash drive
+        # 2. 出现弱核心词，同时出现上下文词
         #
-        # 同时不能出现排异词
+        # 同时不能出现明显排异词
         # ==========================================
         is_likely_target = (
             has_strong_core or

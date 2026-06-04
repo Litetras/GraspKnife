@@ -8,35 +8,31 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 # =====================================================================
-# 🍳 Pan 专属任务导向抓取规则表
+# 🍳 Spatula 专属任务导向抓取规则表
 # =====================================================================
-# 你的规则：
-# pan / Handle / Up -> cook
-# pan / Rim    / Up -> pass
-#
-# 注意：
-# - Handle 会对应把手区域
-# - Rim 会对应非 Handle 区域，也就是锅身 / 锅口区域
+# 当前规则：
+# - spatulas cooking -> Handle / Up
+# - spatulas passing -> Head   / Left, Right
 # =====================================================================
 TASK_RULES = {
-    "Pan": [
-        {"task": "cook", "region": "Handle", "orientations": ["Up"]},
-        {"task": "pass", "region": "Rim", "orientations": ["Up"]}
-    ]
+    "Spatula": [
+        {"task": "cooking", "region": "Handle", "orientations": ["Up"]},
+        {"task": "passing", "region": "Head", "orientations": ["Left", "Right"]},
+    ],
 }
 
 # =====================================================================
-# 🎛️ Pan 专属角度阈值配置
+# 🎛️ Spatula 专属角度阈值配置
 # =====================================================================
 CATEGORY_ANGLE_CONFIG = {
     "default": {"strict": 15.0, "relaxed": 25.0},
-    "pans":    {"strict": 15.0, "relaxed": 35.0}
+    "11_spatulas": {"strict": 20.0, "relaxed": 35.0},
 }
 
 
 def natural_key(text):
     """
-    自然排序：pan_2 排在 pan_10 前面。
+    自然排序：spatula_2 排在 spatula_10 前面。
     """
     return [
         int(part) if part.isdigit() else part
@@ -46,72 +42,65 @@ def natural_key(text):
 
 def check_grasp_region(pos, info, target_region):
     """
-    判断抓取点属于 Handle 还是 Rim。
+    判断抓取点属于目标区域还是非目标区域。
 
-    当前 Pan 的几何标注是二分：
-    - Handle = 把手区域
-    - Rim    = 非把手区域，也就是锅身 / 锅口区域
+    位置标注 JSON 里 target_region 表示被手动点出的区域。
+    对当前 spatula 数据：
+    - target_region 是 Handle 时，Head = 非 Handle 区域
     """
     coord = pos[info["split_axis"]]
-    is_handle_side = False
+    is_target_side = False
 
     if info["mode"] == "2_points":
         if info["target_is_positive"] and coord > info["boundary_coord"]:
-            is_handle_side = True
+            is_target_side = True
         elif not info["target_is_positive"] and coord < info["boundary_coord"]:
-            is_handle_side = True
+            is_target_side = True
 
     elif info["mode"] == "3_points":
         if info["boundary_min"] <= coord <= info["boundary_max"]:
-            is_handle_side = True
+            is_target_side = True
 
-    region_lower = target_region.lower()
+    target_region_name = str(info.get("target_region", "")).lower()
+    requested_region = str(target_region).lower()
 
-    if region_lower == "handle":
-        return is_handle_side
+    if requested_region == target_region_name:
+        return is_target_side
 
-    elif region_lower == "rim":
-        return not is_handle_side
-
-    else:
-        return not is_handle_side
+    return not is_target_side
 
 
 def check_kinematic_constraints(rot_matrix, category_name, required_region, info):
     """
-    Pan 专属运动学约束。
+    Spatula 专属运动学约束。
 
-    对 Handle 抓取：
-    - 避免夹爪闭合方向完全顺着把手方向。
-    - 如果太严格，可以把 0.85 改成 0.95，或者直接 return True, "Pass"。
+    对细长目标区域抓取：
+    - 避免夹爪闭合方向完全顺着被切分轴方向。
+    - 这个约束只拦截极端“顺着捏”的坏抓取，保留足够候选。
     """
     closing_axis = rot_matrix[:, 1]
-
-    cat_lower = category_name.lower()
     reg_lower = required_region.lower()
 
-    if "pan" in cat_lower and reg_lower == "handle":
+    if reg_lower in {"handle", "head"}:
         split_vec = np.zeros(3)
         split_vec[info["split_axis"]] = 1.0
 
-        parallelism_to_handle = abs(np.dot(closing_axis, split_vec))
+        parallelism_to_split_axis = abs(np.dot(closing_axis, split_vec))
 
-        if parallelism_to_handle > 0.85:
-            return False, "Pan_Handle_Along_Handle_Bad_Grasp"
+        if parallelism_to_split_axis > 0.92:
+            return False, "Along_Split_Axis_Bad_Grasp"
 
     return True, "Pass"
 
 
-def get_pan_rules(category_name):
+def get_spatula_rules(category_name):
     """
-    只匹配 Pan / pans 类别。
+    只匹配 Spatula 类别。
     """
     cat_lower = category_name.lower()
 
-    pan_aliases = ["pan", "pans", "skillet", "frying_pan", "frying pan"]
-
-    if any(alias in cat_lower for alias in pan_aliases):
-        return TASK_RULES["Pan"]
+    if "spatula" in cat_lower:
+        return TASK_RULES["Spatula"]
 
     return []
 
@@ -230,7 +219,7 @@ def diagnose_missing_reason(strict_stats, relaxed_stats, region_name, ori_name):
     if stats.get("missing_orientation", False):
         return (
             f"缺少方向配置: orientations 里没有 '{ori_name}'。"
-            f"请检查 pan_category_grasp_directions.json 是否标了 {ori_name}。"
+            f"请检查 spatula_category_grasp_directions.json 是否标了 {ori_name}。"
         )
 
     if stats["total_grasps"] == 0:
@@ -242,7 +231,7 @@ def diagnose_missing_reason(strict_stats, relaxed_stats, region_name, ori_name):
     if stats["region_match"] == 0:
         return (
             f"Region 筛选为 0。说明没有任何抓取点落在 {region_name} 区域。"
-            f"大概率是 pan_dataset_boundaries_auto.json 里的 split_axis / boundary_coord / "
+            f"大概率是 spatula_dataset_boundaries_auto.json 里的 split_axis / boundary_coord / "
             f"target_is_positive 标错，或者该模型把手/锅口分割不对。"
         )
 
@@ -319,20 +308,20 @@ def export_combo_json(
     return output_path, len(matrix_list)
 
 
-def filter_and_convert_pan_grasps(dataset_json_path, yaml_dir, output_dir):
+def filter_and_convert_spatula_grasps(dataset_json_path, yaml_dir, output_dir):
     print("=" * 70)
-    print("🍳 启动 Pan 专属任务导向抓取清洗器 + 缺失原因诊断版")
-    print("🛡️ 规则: 仅导出符合 [Region + Orientation] 约束的 Pan 抓取")
+    print("🍳 启动 Spatula 任务导向抓取清洗器 + 缺失原因诊断版")
+    print("🛡️ 规则: 仅导出符合 [Region + Orientation] 约束的 Spatula 抓取")
     print("🎯 当前任务规则:")
-    print("   1. cook -> Handle / Up")
-    print("   2. pass -> Rim    / Up")
+    print("   Spatula: cooking -> Handle / Up")
+    print("   Spatula: passing -> Head   / Left, Right")
     print("=" * 70)
 
     TARGET_MAX_GRASPS = 400
     MIN_GRASPS_THRESHOLD = 50
 
     if not os.path.exists(dataset_json_path):
-        print(f"❌ 找不到 Pan 数据集总表: {dataset_json_path}")
+        print(f"❌ 找不到 Spatula 数据集总表: {dataset_json_path}")
         return
 
     with open(dataset_json_path, "r", encoding="utf-8") as f:
@@ -386,13 +375,13 @@ def filter_and_convert_pan_grasps(dataset_json_path, yaml_dir, output_dir):
         info = dataset_info[base_name]
         category_name = info.get("category", "unknown")
 
-        category_rules = get_pan_rules(category_name)
+        category_rules = get_spatula_rules(category_name)
 
         if not category_rules:
             skipped_no_rule += 1
             debug_report["skipped_models"].append({
                 "base_name": base_name,
-                "reason": f"无 Pan 规则，category={category_name}"
+                "reason": f"无 Spatula 规则，category={category_name}"
             })
             continue
 
@@ -596,7 +585,7 @@ def filter_and_convert_pan_grasps(dataset_json_path, yaml_dir, output_dir):
 
                 print(
                     f"   ✅ 导出: {os.path.basename(output_path)} "
-                    f"(保存 {saved_count} 个 Pan 抓取, 使用 {used_stage})"
+                    f"(保存 {saved_count} 个 Spatula 抓取, 使用 {used_stage})"
                 )
 
     # =====================================================================
@@ -615,23 +604,23 @@ def filter_and_convert_pan_grasps(dataset_json_path, yaml_dir, output_dir):
         "extra_yaml_not_in_dataset": extra_yaml_not_in_dataset
     }
 
-    report_path = os.path.join(output_dir, "pan_grasp_filter_debug_report.json")
+    report_path = os.path.join(output_dir, "spatula_grasp_filter_debug_report.json")
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump(debug_report, f, indent=2)
 
     print("\n" + "=" * 70)
-    print("🎉 Pan 抓取清洗完毕！")
-    print(f"✅ 共处理 Pan 模型: {processed_count} 个")
+    print("🎉 Spatula 抓取清洗完毕！")
+    print(f"✅ 共处理 Spatula 模型: {processed_count} 个")
     print(f"🎯 理论应检查组合数: {expected_combo_count} 个")
     print(f"✅ 实际导出 JSON 数: {exported_json_count} 个")
     print(f"❌ 未生成组合数: {missing_combo_count} 个")
     print(f"✅ 总共导出高质量抓取: {total_grasps_saved} 个")
     print(f"⏭️ dataset 中有但找不到 YAML: {skipped_no_yaml} 个")
-    print(f"⏭️ YAML 不在 Pan dataset 中: {extra_yaml_not_in_dataset} 个")
-    print(f"⏭️ 无 Pan 规则: {skipped_no_rule} 个")
+    print(f"⏭️ YAML 不在 Spatula dataset 中: {extra_yaml_not_in_dataset} 个")
+    print(f"⏭️ 无 Spatula 规则: {skipped_no_rule} 个")
     print(f"⏭️ 缺少 orientations: {skipped_no_orientation} 个")
     print(f"⏭️ YAML 无 grasps: {skipped_no_grasps} 个")
-    print(f"📁 Pan 抓取 JSON 已保存在: {output_dir}")
+    print(f"📁 Spatula 抓取 JSON 已保存在: {output_dir}")
     print(f"🧾 Debug 报告已保存至: {report_path}")
 
     if missing_combo_count > 0:
@@ -648,13 +637,13 @@ def filter_and_convert_pan_grasps(dataset_json_path, yaml_dir, output_dir):
 if __name__ == "__main__":
     DATASET_ROOT = "/home/zyp/pan1/#LODGrasp核心权重与数据集/7个物体数据集"
 
-    DATASET_JSON = "/home/zyp/GraspGen/final_pan_task_oriented_dataset.json"
+    DATASET_JSON = "/home/zyp/GraspGen/final_spatula_task_oriented_dataset.json"
 
     YAML_INPUT_DIR = os.path.join(DATASET_ROOT, "grasps")
 
-    JSON_OUTPUT_DIR = os.path.join(DATASET_ROOT, "task_oriented_grasps_json_pan")
+    JSON_OUTPUT_DIR = os.path.join(DATASET_ROOT, "task_oriented_grasps_json_spatula")
 
-    filter_and_convert_pan_grasps(
+    filter_and_convert_spatula_grasps(
         DATASET_JSON,
         YAML_INPUT_DIR,
         JSON_OUTPUT_DIR

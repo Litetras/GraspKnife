@@ -20,23 +20,37 @@ os.environ['https_proxy'] = PROXY_URL
 print(f"已设置网络代理为: {PROXY_URL}")
 
 # ==========================================
-# 类别与参数配置区域：只处理 Pan
+# 类别与参数配置区域：下载 hand_saw / key / usb_flash_drive
 # ==========================================
 BASE_OUTPUT_DIR = "/home/zyp/Desktop/objaverse_dataset"
 
 tasks = {
-    "pan": {
-        "uid_file": "pan_uids.json",
-        "output_dir": os.path.join(BASE_OUTPUT_DIR, "pans"),
-        "target_scale": 0.25,
-        "prefix": "pan"
+    "hand_saw": {
+        "uid_file": "hand_saw_uids.json",
+        "output_dir": os.path.join(BASE_OUTPUT_DIR, "hand_saws"),
+        "target_scale": 0.35,
+        "prefix": "hand_saw"
+    },
+
+    "key": {
+        "uid_file": "key_uids.json",
+        "output_dir": os.path.join(BASE_OUTPUT_DIR, "keys"),
+        "target_scale": 0.08,
+        "prefix": "key"
+    },
+
+    "usb_flash_drive": {
+        "uid_file": "usb_flash_drive_uids.json",
+        "output_dir": os.path.join(BASE_OUTPUT_DIR, "usb_flash_drives"),
+        "target_scale": 0.08,
+        "prefix": "usb_flash_drive"
     }
 }
 
 MAX_RETRIES = 5
 
 # ==========================================
-# 主循环：遍历处理 Pan 类别
+# 主循环：遍历处理每一个类别
 # ==========================================
 for category, config in tasks.items():
     print("\n" + "=" * 60)
@@ -60,6 +74,8 @@ for category, config in tasks.items():
 
     success_count = 0
     skip_count = 0
+    fail_download_count = 0
+    fail_convert_count = 0
 
     for i, uid in enumerate(uids):
         obj_filename = f"{prefix}_{uid[:8]}.obj"
@@ -98,51 +114,72 @@ for category, config in tasks.items():
                 else:
                     print(f"  -> ⚠️ 放弃当前模型 UID: {uid[:8]}")
 
-        if download_success and glb_path:
-            try:
-                scene_or_mesh = trimesh.load(glb_path, force='mesh')
+        if not download_success or glb_path is None:
+            fail_download_count += 1
+            continue
 
-                if isinstance(scene_or_mesh, trimesh.Scene):
-                    if len(scene_or_mesh.geometry) == 0:
-                        continue
-                    mesh = trimesh.util.concatenate(
-                        tuple(scene_or_mesh.geometry.values())
-                    )
-                else:
-                    mesh = scene_or_mesh
+        # 下载成功后，转换和缩放
+        try:
+            scene_or_mesh = trimesh.load(glb_path, force='mesh')
 
-                # 居中与缩放
-                mesh.apply_translation(-mesh.centroid)
+            if isinstance(scene_or_mesh, trimesh.Scene):
+                if len(scene_or_mesh.geometry) == 0:
+                    fail_convert_count += 1
+                    continue
 
-                max_length = mesh.extents.max()
-                if max_length > 0:
-                    scale_factor = target_scale / max_length
-                    mesh.apply_scale(scale_factor)
+                mesh = trimesh.util.concatenate(
+                    tuple(scene_or_mesh.geometry.values())
+                )
+            else:
+                mesh = scene_or_mesh
 
-                # 导出 OBJ
-                mesh.export(obj_out_path)
+            if mesh is None or mesh.is_empty:
+                fail_convert_count += 1
+                continue
 
-                # 修复 OBJ 内部名称
-                with open(obj_out_path, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()
+            # 居中与缩放
+            mesh.apply_translation(-mesh.centroid)
 
-                with open(obj_out_path, 'w', encoding='utf-8') as f:
-                    clean_name = obj_filename.replace('.obj', '')
-                    for line in lines:
-                        if line.startswith('o ') or line.startswith('g '):
+            max_length = mesh.extents.max()
+            if max_length > 0:
+                scale_factor = target_scale / max_length
+                mesh.apply_scale(scale_factor)
+
+            # 导出 OBJ
+            mesh.export(obj_out_path)
+
+            # 修复 OBJ 内部名称
+            with open(obj_out_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+
+            with open(obj_out_path, 'w', encoding='utf-8') as f:
+                clean_name = obj_filename.replace('.obj', '')
+                wrote_name = False
+
+                for line in lines:
+                    if line.startswith('o ') or line.startswith('g '):
+                        if not wrote_name:
                             f.write(f"o {clean_name}\n")
-                        else:
-                            f.write(line)
+                            wrote_name = True
+                        # 跳过额外 o/g，避免重复很多组名
+                    else:
+                        f.write(line)
 
-                success_count += 1
-                print(f"  -> ✅ 成功 [{i + 1}/{len(uids)}]: {obj_filename}")
+            success_count += 1
+            print(f"  -> ✅ 成功 [{i + 1}/{len(uids)}]: {obj_filename}")
 
-                time.sleep(random.uniform(0.1, 0.5))
+            time.sleep(random.uniform(0.1, 0.5))
 
-            except Exception as e:
-                print(f"  -> ⚠️ 模型 [{i + 1}/{len(uids)}] 转换时报错，已跳过。")
-                pass
+        except Exception as e:
+            fail_convert_count += 1
+            print(f"  -> ⚠️ 模型 [{i + 1}/{len(uids)}] 转换时报错，已跳过。")
+            continue
 
-    print(f"[{category}] 处理完毕！新增生成 {success_count} 个，跳过 {skip_count} 个。")
+    print("\n" + "-" * 60)
+    print(f"[{category}] 处理完毕！")
+    print(f"  ✅ 新增生成: {success_count}")
+    print(f"  ⏭️ 已存在跳过: {skip_count}")
+    print(f"  ❌ 下载失败: {fail_download_count}")
+    print(f"  ⚠️ 转换失败: {fail_convert_count}")
 
-print("\n🎉 Pan 类别的批量下载与处理已全部完成！")
+print("\n🎉 hand_saw / key / usb_flash_drive 三个类别的批量下载与处理已全部完成！")

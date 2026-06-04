@@ -3,68 +3,86 @@ import glob
 import re
 
 # ==========================================
-# 配置区域 (按需修改这两项即可通用)
+# 配置区域
 # ==========================================
-# 1. 指向你存放原始模型的文件夹
-WORK_DIR = "/home/zyp/pan1/objaverse_dataset_5/electric_drills_cleaned_aligned"  
+RENAME_JOBS = [
+    {
+        "work_dir": "/home/zyp/Desktop/objaverse_dataset/spatulas",
+        "prefix": "spatula",
+    },
 
-# 2. 设定你想要的文件前缀名称 (例如 "kitchen_knife", "claw_hammer", "cup" 等)
-PREFIX = "drill"
-
-# 【自动生成】创建一个专门存放重命名后模型的输出文件夹，保护原始数据
-OUTPUT_DIR = os.path.join(WORK_DIR, "renamed_output")
+]
 
 # ==========================================
-# 执行重命名逻辑
+# 工具函数
 # ==========================================
-if not os.path.exists(WORK_DIR):
-    raise FileNotFoundError(f"找不到文件夹: {WORK_DIR}")
-
-# 自动创建输出文件夹
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-# 使用正则表达式提取文件名中的数字，进行“真正的自然数字排序”
 def extract_number(filename):
+    """使用文件名里的数字做自然排序，保证 2 排在 10 前面。"""
     numbers = re.findall(r'\d+', os.path.basename(filename))
     return int(numbers[-1]) if numbers else 0
 
-# 按提取出的数字大小排序，确保 2 排在 10 前面
-obj_files = sorted(glob.glob(os.path.join(WORK_DIR, "*.obj")), key=extract_number)
 
-if not obj_files:
-    print(f"在 {WORK_DIR} 中没有找到 .obj 文件。")
-    exit()
+def rename_obj_files(work_dir, prefix):
+    output_dir = os.path.join(work_dir, "renamed_output")
 
-print(f"共找到 {len(obj_files)} 个 OBJ 文件，准备开始以前缀 '{PREFIX}' 执行重命名流水线...")
+    if not os.path.exists(work_dir):
+        raise FileNotFoundError(f"找不到文件夹: {work_dir}")
 
-for index, old_path in enumerate(obj_files, start=1):
-    # 动态使用配置好的前缀进行命名
-    new_base_name = f"{PREFIX}_{index}"
-    new_filename = f"{new_base_name}.obj"
-    
-    # 将新文件保存到专门的 OUTPUT_DIR，绝不覆盖原文件
-    new_path = os.path.join(OUTPUT_DIR, new_filename)
-    
-    try:
-        # 1. 读取旧文件的所有内容
-        with open(old_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-            
-        # 2. 写入新文件夹里的新文件，并在写入时修改内部对象名称
-        with open(new_path, 'w', encoding='utf-8') as f:
-            for line in lines:
-                if line.startswith('o ') or line.startswith('g '):
-                    f.write(f"o {new_base_name}\n")
-                else:
-                    f.write(line)
-        
-        print(f"[{index}/{len(obj_files)}] 转换成功: {os.path.basename(old_path)} -> {new_filename}")
-        
-    except Exception as e:
-        print(f"处理文件 {old_path} 时出错: {e}")
+    os.makedirs(output_dir, exist_ok=True)
+    obj_files = sorted(glob.glob(os.path.join(work_dir, "*.obj")), key=extract_number)
 
-print("="*60)
-print(f"全部重命名完成！")
-print(f"✅ 安全起见，所有新模型已存放在: {OUTPUT_DIR}")
-print("现在你可以把这个新文件夹里的模型一次性拖入 Blender 中了。")
-print("="*60)
+    if not obj_files:
+        print(f"在 {work_dir} 中没有找到 .obj 文件，跳过。")
+        return 0, output_dir
+
+    print("=" * 60)
+    print(f"目录: {work_dir}")
+    print(f"共找到 {len(obj_files)} 个 OBJ 文件，准备以前缀 '{prefix}' 重命名...")
+
+    converted_count = 0
+    for index, old_path in enumerate(obj_files, start=1):
+        new_base_name = f"{prefix}_{index}"
+        new_filename = f"{new_base_name}.obj"
+        new_path = os.path.join(output_dir, new_filename)
+
+        try:
+            with open(old_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+
+            with open(new_path, 'w', encoding='utf-8') as f:
+                for line in lines:
+                    if line.startswith('o ') or line.startswith('g '):
+                        f.write(f"o {new_base_name}\n")
+                    else:
+                        f.write(line)
+
+            converted_count += 1
+            print(f"[{index}/{len(obj_files)}] 转换成功: {os.path.basename(old_path)} -> {new_filename}")
+
+        except Exception as exc:
+            print(f"处理文件 {old_path} 时出错: {exc}")
+
+    print(f"✅ 完成: {converted_count}/{len(obj_files)} 个，新模型已存放在: {output_dir}")
+    return converted_count, output_dir
+
+
+def main():
+    total_converted = 0
+    output_dirs = []
+
+    for job in RENAME_JOBS:
+        converted_count, output_dir = rename_obj_files(job["work_dir"], job["prefix"])
+        total_converted += converted_count
+        output_dirs.append(output_dir)
+
+    print("=" * 60)
+    print(f"全部重命名完成！总计转换 {total_converted} 个 OBJ。")
+    print("输出目录:")
+    for output_dir in output_dirs:
+        print(f"  - {output_dir}")
+    print("现在你可以把这些 renamed_output 文件夹里的模型拖入 Blender 中。")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()

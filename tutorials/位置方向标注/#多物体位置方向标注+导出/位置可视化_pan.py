@@ -5,11 +5,11 @@ import numpy as np
 import glob
 
 
-def visualize_pan_annotations(base_dir, json_path):
+def visualize_spatula_annotations(base_dir, json_path):
     print("=" * 60)
-    print("🎨 启动 Pan / 平底锅 标注结果可视化检查器")
-    print("🔴 红色区域 = Handle / 把手区域")
-    print("⚪ 灰色区域 = Pan body / 锅身区域")
+    print("🎨 启动 Spatula 标注结果可视化检查器")
+    print("🔴 红色区域 = 目标语义区域，例如 spatula handle")
+    print("⚪ 灰色区域 = 其它主体区域")
     print("💡 轴向颜色提示：[红箭头=X轴(0)] | [绿箭头=Y轴(1)] | [蓝箭头=Z轴(2)]")
     print("操作提示：看完当前模型后，按键盘 [Q] 切换到下一个")
     print("=" * 60)
@@ -26,7 +26,8 @@ def visualize_pan_annotations(base_dir, json_path):
         return
 
     for base_name, data in annotations.items():
-        category = data.get("category", "pans")
+        category = data.get("category", "unknown")
+        target_region = data.get("target_region", "target")
         folder_path = os.path.join(base_dir, category)
 
         mesh_files = (
@@ -62,8 +63,8 @@ def visualize_pan_annotations(base_dir, json_path):
         # 默认灰色
         colors = np.full((len(vertices), 3), [0.7, 0.7, 0.7])
 
-        # Pan 默认使用 2_points：
-        # 红色 = 把手区域 Handle
+        # 默认使用 2_points：
+        # 红色 = 当前 JSON 中定义的目标语义区域。
         if mode == "2_points":
             boundary_coord = data["boundary_coord"]
 
@@ -95,24 +96,24 @@ def visualize_pan_annotations(base_dir, json_path):
         axis_names = ["X(红)", "Y(绿)", "Z(蓝)"]
         axis_name = axis_names[split_axis]
 
-        print(f"\n👀 正在查看 Pan: {base_name}")
+        print(f"\n👀 正在查看 {category}: {base_name}")
         print(f"   -> 模型路径: {mesh_path}")
         print(f"   -> 当前切分轴: 【{axis_name}】")
-        print(f"   -> 红色区域应该是【平底锅把手】")
-        print(f"   -> 灰色区域应该是【锅身】")
+        print(f"   -> 红色区域应该是【{target_region}】")
+        print(f"   -> 灰色区域应该是【其它主体区域】")
 
         if mode == "2_points":
             print(f"   -> boundary_coord: {data['boundary_coord']:.6f}")
             print(
                 f"   -> target_is_positive: {data['target_is_positive']} "
-                f"({'正方向为把手' if data['target_is_positive'] else '负方向为把手'})"
+                f"({'正方向为目标区域' if data['target_is_positive'] else '负方向为目标区域'})"
             )
 
-        print("   -> 如果红色区域不是把手，说明 split_axis 或 target_is_positive 需要改。")
+        print("   -> 如果红色区域不是目标区域，说明 split_axis 或 target_is_positive 需要改。")
 
         vis = o3d.visualization.Visualizer()
         vis.create_window(
-            window_name=f"Pan 标注检查: {base_name}",
+            window_name=f"Spatula 标注检查: {base_name}",
             width=1024,
             height=768
         )
@@ -123,12 +124,12 @@ def visualize_pan_annotations(base_dir, json_path):
 
 
 if __name__ == "__main__":
-    # 你的 pan 模型目录应该是：
-    # /home/zyp/Desktop/objaverse_dataset/pans
-    # 所以 BASE_DIR 写到 objaverse_dataset 这一层
-    BASE_DIR = "/home/zyp/Desktop/objaverse_dataset"
+    # 你的 spatula 模型目录应该是：
+    # /home/zyp/pan1/#LODGrasp核心权重与数据集/7个物体数据集/dataset_obj/11_spatulas
+    # 所以 BASE_DIR 写到 dataset_obj 这一层
+    BASE_DIR = "/home/zyp/pan1/#LODGrasp核心权重与数据集/7个物体数据集/dataset_obj"
 
-    # Pan 专属边界标注 JSON
-    OUTPUT_JSON = "pan_dataset_boundaries_auto.json"
+    # Spatula 专属边界标注 JSON
+    OUTPUT_JSON = "spatula_dataset_boundaries_auto.json"
 
-    visualize_pan_annotations(BASE_DIR, OUTPUT_JSON)
+    visualize_spatula_annotations(BASE_DIR, OUTPUT_JSON)

@@ -14,15 +14,15 @@ DEFAULT_GRASPS_DIR = os.path.join(DATASET_ROOT, "grasps")
 DEFAULT_OBJ_DIR = os.path.join(DATASET_ROOT, "dataset_obj")
 
 CATEGORY_CONFIG = {
-    "mug": {
-        "grasp_dir": "mug_grasp",
-        "obj_dir": "7_mugs",
-        "color": [0.0, 0.6, 1.0],
+    "fork": {
+        "grasp_dir": "frok_grasp",
+        "obj_dir": "9_forks",
+        "color": [0.0, 0.75, 0.35],
     },
-    "pan": {
-        "grasp_dir": "pan_grasp",
-        "obj_dir": "8_pan",
-        "color": [1.0, 0.55, 0.0],
+    "key": {
+        "grasp_dir": "key_grasp",
+        "obj_dir": "10_keys",
+        "color": [0.95, 0.55, 0.0],
     },
 }
 
@@ -250,15 +250,15 @@ def parse_args():
     parser.add_argument(
         "--categories",
         nargs="+",
-        default=["mug", "pan"],
+        default=["fork", "key"],
         choices=sorted(CATEGORY_CONFIG.keys()),
-        help="默认只看 mug 和 pan。",
+        help="默认只看 fork 和 key。",
     )
     parser.add_argument(
         "--objects",
         nargs="+",
         default=None,
-        help="只看指定物体，例如 --objects mug_1 pan_3。",
+        help="只看指定物体，例如 --objects fork_1 key_3。",
     )
     parser.add_argument("--max-grasps", type=int, default=500)
     parser.add_argument("--sample-mode", choices=["random", "top"], default="random")
