@@ -22,6 +22,7 @@ Usage::
 
 import torch
 import torch.nn as nn
+import os
 
 
 def _load_clip_to_cpu(backbone_name: str = "ViT-B/32"):
@@ -85,6 +86,8 @@ class TextEncoder(nn.Module):
         self.ln_final            = clip_model.ln_final
         self.text_projection     = clip_model.text_projection
         self.dtype               = clip_model.dtype
+        self.cache_enabled       = os.environ.get("GRASPGEN_CACHE_TEXT_FEATURES", "1") != "0"
+        self._feature_cache      = {}
 
         # Width of the transformer hidden state (e.g. 512 for ViT-B/32)
         self.embed_dim: int = self.transformer.width
@@ -104,8 +107,35 @@ class TextEncoder(nn.Module):
             ``B = len(text)``.
         """
         device = next(self.parameters()).device
-        tokens = self._clip_module.tokenize(text, context_length=77).to(device)
+        if not self.cache_enabled:
+            return self._encode_uncached(text, device)
 
+        output_features = [None] * len(text)
+        missing_texts = []
+        missing_positions = []
+        device_key = str(device)
+
+        for idx, prompt in enumerate(text):
+            cache_key = (device_key, prompt)
+            cached = self._feature_cache.get(cache_key)
+            if cached is None:
+                missing_texts.append(prompt)
+                missing_positions.append(idx)
+            else:
+                output_features[idx] = cached
+
+        if missing_texts:
+            encoded = self._encode_uncached(missing_texts, device)
+            for prompt, pos, feat in zip(missing_texts, missing_positions, encoded):
+                cache_key = (device_key, prompt)
+                feat = feat.detach()
+                self._feature_cache[cache_key] = feat
+                output_features[pos] = feat
+
+        return torch.stack(output_features, dim=0).float()
+
+    def _encode_uncached(self, text: list, device: torch.device) -> torch.Tensor:
+        tokens = self._clip_module.tokenize(text, context_length=77).to(device)
         x = self.token_embedding(tokens).type(self.dtype)   # [B, 77, D]
         x = x + self.positional_embedding.type(self.dtype)
         x = x.permute(1, 0, 2)                              # NLD -> LND

@@ -71,11 +71,14 @@ logger = get_logger(__name__)
 OBJECT_ID2NAME = {
     0: "brush",
     1: "drill",
-    2: "hammer",
-    3: "knife",
-    4: "mug",
-    5: "screwdriver",
-    6: "spoon",
+    2: "fork",
+    3: "hammer",
+    4: "key",
+    5: "knife",
+    6: "mug",
+    7: "pan",
+    8: "spatula",
+    9: "spoon",
 }
 
 OBJECT_NAME2ID = {v: k for k, v in OBJECT_ID2NAME.items()}
@@ -171,6 +174,49 @@ def parse_object_category(scene_key):
     if object_name is None:
         return None, -1
     return object_name, OBJECT_NAME2ID[object_name]
+
+
+def load_task_texts_for_dataset(root_dir):
+    """Load task_texts.json from the dataset location used by training.
+
+    The training scripts pass ``root_dir`` as the object/split directory, e.g.
+    /results/tutorial/tutorial_object_dataset.  In that layout task_texts.json
+    lives one level above it.  ``GRASPGEN_TASK_TEXTS_PATH`` is kept as an
+    explicit override for experiments.
+    """
+    candidate_paths = []
+
+    env_path = os.environ.get("GRASPGEN_TASK_TEXTS_PATH", "").strip()
+    if env_path:
+        candidate_paths.append(env_path)
+
+    if root_dir:
+        candidate_paths.append(os.path.join(os.path.dirname(root_dir), "task_texts.json"))
+
+    candidate_paths.append("/results/tutorial/task_texts.json")
+
+    seen = set()
+    for task_text_path in candidate_paths:
+        if task_text_path in seen:
+            continue
+        seen.add(task_text_path)
+
+        if not os.path.exists(task_text_path):
+            continue
+
+        try:
+            with open(task_text_path, "r", encoding="utf-8") as f:
+                task_texts = json.load(f)
+            logger.info(f"成功加载任务文本字典: {task_text_path}")
+            return task_texts
+        except Exception as e:
+            logger.error(f"读取 task_texts.json 失败: {task_text_path}; error={e}")
+
+    logger.warning(
+        "未找到 task_texts.json，将从文件名解析任务文本。尝试路径: %s",
+        candidate_paths,
+    )
+    return {}
 
 
 def parse_semantic_scene_key(scene_key):
@@ -538,24 +584,8 @@ class PickDataset(Dataset):
         cache_dir = cache_dir
         self.patch_width = patch_width
         self.load_contact = load_contact
-       # === 👇 添加以下代码 👇 ===#################################################666
-       # ================= 新增：读取 JSON 任务文本 =================
-        self.tasks = tasks  # 保存 yaml 传进来的 tasks (例如 ['up'])
-        self.task_texts = {}
-        
-        # 直接使用 Docker 内部映射好的绝对路径
-        task_text_path = "/results/tutorial/task_texts.json" #################注意：这个路径需要和 Docker 内部的实际路径一致
-        
-        if os.path.exists(task_text_path):
-            try:
-                with open(task_text_path, "r", encoding="utf-8") as f:
-                    self.task_texts = json.load(f)
-                logger.info(f"成功加载任务文本字典: {task_text_path}")
-            except Exception as e:
-                logger.error(f"读取 task_texts.json 失败: {e}")
-        else:
-            logger.warning(f"未找到任务文本文件: {task_text_path}，将使用默认文本。")
-        # =========================================================
+        self.tasks = tasks
+        self.task_texts = load_task_texts_for_dataset(root_dir)
 
         self.prob_point_cloud = prob_point_cloud
         self.preload_dataset = preload_dataset
@@ -663,6 +693,14 @@ class PickDataset(Dataset):
                 for candidate in semantic_scenes_by_base[base_name]
                 if candidate != scene
             ]
+        self.max_semantic_negative_files = max(
+            0,
+            int(os.environ.get("GRASPGEN_MAX_SEMANTIC_NEGATIVE_FILES", "2")),
+        )
+        self.max_semantic_negative_grasps_per_file = max(
+            0,
+            int(os.environ.get("GRASPGEN_MAX_SEMANTIC_NEGATIVE_GRASPS_PER_FILE", "256")),
+        )
 
         # 每个 DataLoader worker 各自维护一份懒加载 mesh 缓存；
         # 开启 persistent_workers 后，跨 epoch 也能复用已加载并缩放过的 mesh。
@@ -670,22 +708,6 @@ class PickDataset(Dataset):
         self.timing_profiler = DatasetTimingProfiler()
 
         self.load_patch = load_patch
-        # ================= 新增：读取 JSON 任务文本 =================##############
-        self.tasks = tasks  # 保存 yaml 传进来的 tasks (例如 ['up'])
-        self.task_texts = {}
-        task_text_path = "/results/tutorial/task_texts.json"# 假设文件放在 root_dir 下
-        if os.path.exists(task_text_path):
-            try:
-                with open(task_text_path, "r", encoding="utf-8") as f:
-                    self.task_texts = json.load(f)
-                logger.info(f"成功加载任务文本字典: {task_text_path}")
-            except Exception as e:
-                logger.error(f"读取 task_texts.json 失败: {e}")
-        else:
-            logger.warning(f"未找到任务文本文件: {task_text_path}，将使用默认文本。")
-        # =========================================================##################
-
-
         self.num_points = num_points
         self.num_obj_points = num_obj_points
         self.cam_coord = cam_coord
@@ -1554,10 +1576,14 @@ class ObjectPickDataset(PickDataset):
             else:
                 opposite_keys = self.semantic_negative_scenes[current_scene]
             # ================= 新增：限制每个样本最多读取几个语义负样本文件 =================
-            max_opp_files = 2
-
-            if len(opposite_keys) > max_opp_files:
-                opposite_keys = random.sample(opposite_keys, max_opp_files)
+            if (
+                self.max_semantic_negative_files > 0
+                and len(opposite_keys) > self.max_semantic_negative_files
+            ):
+                opposite_keys = random.sample(
+                    opposite_keys,
+                    self.max_semantic_negative_files,
+                )
             # =====================================================================
 
             # --- 读取其它语义文件里的 positive_grasps，当作当前任务的 true negative ---
@@ -1599,6 +1625,19 @@ class ObjectPickDataset(PickDataset):
                         opp_grasps = opp_grasp_data.positive_grasps.copy()
 
                         if len(opp_grasps) > 0:
+                            # 语义负样本只参与随机采样，不需要每步把同文件全部抓取都搬进来。
+                            # 这会显著减少判别器 DataLoader 的 numpy 矩阵乘和 vstack 开销。
+                            if (
+                                self.max_semantic_negative_grasps_per_file > 0
+                                and len(opp_grasps) > self.max_semantic_negative_grasps_per_file
+                            ):
+                                mask_opp = np.random.randint(
+                                    0,
+                                    len(opp_grasps),
+                                    self.max_semantic_negative_grasps_per_file,
+                                )
+                                opp_grasps = opp_grasps[mask_opp]
+
                             # 必须和当前点云使用同一个 T_move_to_pc_mean
                             opp_grasps = np.array([T_move_to_pc_mean @ g for g in opp_grasps])
 
@@ -1715,10 +1754,16 @@ class ObjectPickDataset(PickDataset):
 ################################################################################################################
 
 
-
-
-
-            scene_mesh = self._build_scene_mesh(obj_asset_path, obj_scale, obj_pose)
+            num_collision_hn = int(
+                self.num_grasps_per_object
+                * self.discriminator_ratio[MAPPING_NAME2ID["neg_hncolliding"]]
+            )
+            collision_hn_disabled = (
+                os.environ.get("GRASPGEN_DISABLE_COLLISION_HARD_NEGATIVES", "0") == "1"
+            )
+            scene_mesh = None
+            if self.visualize_batch or (num_collision_hn > 0 and not collision_hn_disabled):
+                scene_mesh = self._build_scene_mesh(obj_asset_path, obj_scale, obj_pose)
             batch_data, scene_mesh = load_discriminator_batch_with_stratified_sampling(
                 self.num_grasps_per_object,
                 positive_grasps,
@@ -2058,6 +2103,19 @@ def load_discriminator_batch_with_stratified_sampling(
     num_pos_true_onpolicy_grasps = int(N * ratio[MAPPING_NAME2ID["pos_true_onpolicy"]])
     num_neg_true_onpolicy_grasps = int(N * ratio[MAPPING_NAME2ID["neg_true_onpolicy"]])
 
+    if (
+        os.environ.get("GRASPGEN_DISABLE_COLLISION_HARD_NEGATIVES", "0") == "1"
+        and num_neg_hncolliding > 0
+    ):
+        # 现场碰撞 hard negative 要为每个样本构建 CollisionManager 并逐姿态查询，
+        # 是判别器 DataLoader 最重的路径。关闭时把这部分 quota 转给已有语义负样本；
+        # 如果当前物体没有语义负样本，则转成便宜的 retract 负样本，保持 batch 数量稳定。
+        if include_true_neg:
+            num_neg_true_grasps += num_neg_hncolliding
+        else:
+            num_neg_hnretract += num_neg_hncolliding
+        num_neg_hncolliding = 0
+
     if positive_grasps_onpolicy is None:
         num_pos_true_grasps += num_pos_true_onpolicy_grasps
         num_pos_true_onpolicy_grasps = 0
@@ -2078,7 +2136,7 @@ def load_discriminator_batch_with_stratified_sampling(
         num_pos_true_grasps += num_neg_true_grasps
         num_neg_true_grasps = 0
 
-    if scene_mesh is None:
+    if scene_mesh is None and num_neg_hncolliding > 0:
         obj_scale = scene_info["scales"][0]
         obj_asset_path = scene_info["assets"][0]
         obj_pose = scene_info["poses"][0]

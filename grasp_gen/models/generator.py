@@ -454,9 +454,14 @@ class GraspGenGenerator(nn.Module):
         noisy_grasps_mat = rt_to_matrix(noisy_grasps, self.grasp_repr, self.kappa)
         grasps_gt_mat = rt_to_matrix(grasps_gt, self.grasp_repr, self.kappa)
 
-        stats = compute_metrics_given_two_sets_of_poses(
-            actual_noise_pts_mat, pred_noise_pts_mat, self.gripper_info
-        )
+        stats = {}
+        if os.environ.get("GRASPGEN_DISABLE_POSE_METRICS", "0") != "1":
+            with torch.no_grad():
+                stats = compute_metrics_given_two_sets_of_poses(
+                    actual_noise_pts_mat.detach(),
+                    pred_noise_pts_mat.detach(),
+                    self.gripper_info,
+                )
 # 2.5 损失函数
 
         # 训练损失支持三种组合：

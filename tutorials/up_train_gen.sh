@@ -2,12 +2,13 @@
 
 # Fixed parameters
 export NGPU=1
-export NWORKER=4
-export NEPOCH=13000 #4500    ##这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
-export BATCH=8
+export NWORKER=6 #4
+export NEPOCH=6000 #老版13000 #4500    ##这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
+export BATCH=16 #8
 export PRINT_FREQ=10
-export PLOT_FREQ=10
+export PLOT_FREQ=1000
 export SAVE_FREQ=1000
+export EVAL_FREQ=50
 export DATASET_NAME="objaverse"
 export DATASET_VERSION="v2"
 export TIMESTEPS=10
@@ -30,6 +31,8 @@ export PYRENDER_INSTALL_PREFIX="apt-get update -y && apt-get install -y tmux lib
 export ROTATION_REPR="r3_so3"
 export PYOPENGL_PLATFORM="osmesa"
 export NOISE_SCALE=1.0
+export GRASPGEN_CACHE_TEXT_FEATURES=1
+export GRASPGEN_DISABLE_POSE_METRICS=1
 export LOG_DIR="$RESULTS_DIR/logs/${GRIPPER_NAME}_gen_test"
 export CHECKPOINT="$LOG_DIR/last.pth"
 export CACHE_DIR="$RESULTS_DIR/cache"
@@ -63,6 +66,7 @@ cd $CODE_DIR && pip install -e . && cd $CODE_DIR/scripts && \
     train.print_freq=$PRINT_FREQ \
     train.plot_freq=$PLOT_FREQ \
     train.save_freq=$SAVE_FREQ \
+    train.eval_freq=$EVAL_FREQ \
     train.checkpoint=$CHECKPOINT \
     train.model_name='diffusion' \
     train.debug=True \

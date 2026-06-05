@@ -109,17 +109,24 @@ def get_data_loader(cfg, data_cfg, split, scenes, use_ddp, training, inference=F
         sampler = RandomSampler(dataset) if training else SequentialSampler(dataset)
 
     persistent = cfg.num_workers > 0
-    loader = DataLoader(
-        dataset,
-        cfg.batch_size,
-        sampler=sampler,
-        num_workers=cfg.num_workers,
-        collate_fn=collate,
-        persistent_workers=persistent,
-        pin_memory=True,
-        worker_init_fn=worker_init_fn,
-        timeout=300 if use_ddp else 0,
-    )
+    dataloader_kwargs = {
+        "dataset": dataset,
+        "batch_size": cfg.batch_size,
+        "sampler": sampler,
+        "num_workers": cfg.num_workers,
+        "collate_fn": collate,
+        "persistent_workers": persistent,
+        "pin_memory": True,
+        "worker_init_fn": worker_init_fn,
+        "timeout": 300 if use_ddp else 0,
+    }
+    if cfg.num_workers > 0:
+        dataloader_kwargs["prefetch_factor"] = max(
+            1,
+            int(os.environ.get("GRASPGEN_DATALOADER_PREFETCH_FACTOR", "4")),
+        )
+
+    loader = DataLoader(**dataloader_kwargs)
 
     return sampler, loader
 
