@@ -695,11 +695,11 @@ class PickDataset(Dataset):
             ]
         self.max_semantic_negative_files = max(
             0,
-            int(os.environ.get("GRASPGEN_MAX_SEMANTIC_NEGATIVE_FILES", "2")),
+            int(os.environ.get("GRASPGEN_MAX_SEMANTIC_NEGATIVE_FILES", "0")),
         )
         self.max_semantic_negative_grasps_per_file = max(
             0,
-            int(os.environ.get("GRASPGEN_MAX_SEMANTIC_NEGATIVE_GRASPS_PER_FILE", "256")),
+            int(os.environ.get("GRASPGEN_MAX_SEMANTIC_NEGATIVE_GRASPS_PER_FILE", "0")),
         )
 
         # 每个 DataLoader worker 各自维护一份懒加载 mesh 缓存；

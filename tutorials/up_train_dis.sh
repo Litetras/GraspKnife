@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 
+export IGNORE_OBJECT_CATEGORIES="screwdriver"
+
 # Fixed parameters
 export NGPU=1
 export NWORKER=6 #4
-export NEPOCH=6000 #2000 #这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
+export NEPOCH=8000 #旧版6月5日6000 #2000 #这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
 export BATCH=16 #16
 export PRINT_FREQ=10 
-export PLOT_FREQ=1000 #10 
+export PLOT_FREQ=100 #10 
 export SAVE_FREQ=1000
-export EVAL_FREQ=50
 export DATASET_NAME="objaverse"
 export DATASET_VERSION="v2"
 export NUM_GRASPS_PER_OBJ=300 #????
@@ -30,17 +31,8 @@ export RESULTS_DIR="/results/tutorial"
 export GRASP_DATASET_DIR="$GRASP_DIR"
 export SPLIT_DATASET_DIR="$OBJECT_DATASET_DIR"
 export METHOD="grasp_gen"
-# [pos_true, neg_true, neg_hncolliding, neg_freespace, neg_hnretract, pos_true_onpolicy, neg_true_onpolicy]
-# 判别器的慢点主要来自 neg_hncolliding 的现场碰撞检测；这里优先使用任务语义负样本。
-export RATIO="[0.50,0.45,0.00,0.00,0.05,0.00,0.00]" #"[0.25,0.24,0.00,0.01,0.00,0.25,0.25]"################################危险###########
+export RATIO="[0.50,0.45,0.00,0.05,0.00,0.00,0.00]" #"[0.25,0.24,0.00,0.01,0.00,0.25,0.25]"################################危险###########
 export PYOPENGL_PLATFORM="osmesa"
-export GRASPGEN_CACHE_TEXT_FEATURES=1
-export GRASPGEN_DISABLE_COLLISION_HARD_NEGATIVES=1
-export GRASPGEN_MAX_SEMANTIC_NEGATIVE_FILES=2
-export GRASPGEN_MAX_SEMANTIC_NEGATIVE_GRASPS_PER_FILE=256
-export GRASPGEN_DATALOADER_PREFETCH_FACTOR=4
-export GRASPGEN_DATASET_TIMING=0
-export GRASPGEN_DATASET_TIMING_EVERY=200
 export LOG_DIR="$RESULTS_DIR/logs/${GRIPPER_NAME}_dis_test"
 export CACHE_DIR="$RESULTS_DIR/cache"
 export CHECKPOINT="$LOG_DIR/last.pth"
@@ -74,7 +66,6 @@ cd $CODE_DIR && pip install -e . && cd $CODE_DIR/scripts && \
     train.print_freq=$PRINT_FREQ \
     train.plot_freq=$PLOT_FREQ \
     train.save_freq=$SAVE_FREQ \
-    train.eval_freq=$EVAL_FREQ \
     train.checkpoint=$CHECKPOINT \
     train.model_name='discriminator' \
     train.debug=True \
