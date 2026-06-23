@@ -103,6 +103,17 @@ SEMANTIC_ORIENTATIONS = {
     "low",
 }
 
+SEMANTIC_DIRECTION_VECTORS = {
+    "up": [0.0, 0.0, 1.0],
+    "down": [0.0, 0.0, -1.0],
+    "front": [1.0, 0.0, 0.0],
+    "back": [-1.0, 0.0, 0.0],
+    "left": [0.0, 1.0, 0.0],
+    "right": [0.0, -1.0, 0.0],
+    "top": [0.0, 0.0, 1.0],
+    "low": [0.0, 0.0, -1.0],
+}
+
 
 class DatasetTimingProfiler:
     """用环境变量打开的临时数据加载计时器，默认完全静默。"""
@@ -1749,9 +1760,16 @@ class ObjectPickDataset(PickDataset):
             
         strict_text = f"{direction} {part}".strip()
         outputs["strict_text"] = strict_text  # 存入 CLIP 的专属锚点
+        object_name, _ = self.scene_object_categories.get(self.scenes[idx], (None, -1))
+        outputs["pass_task_name"] = "_".join(
+            x for x in [object_name or "object", part, direction] if x
+        )
+        outputs["pass_task_direction_vectors"] = torch.tensor(
+            SEMANTIC_DIRECTION_VECTORS.get(direction, [0.0, 0.0, 0.0]),
+            dtype=torch.float32,
+        )
 
         # 3. 从 JSON 读取 Qwen 的自然语言模板；读不到时再走安全兜底。
-        object_name, _ = self.scene_object_categories.get(self.scenes[idx], (None, -1))
         tool = object_name or "object"
         direction_part = "_".join([x for x in [direction, part] if x])
         natural_text_keys = [x for x in [
@@ -2159,9 +2177,10 @@ def collate_batch_keys(batch):
 
 
 
-# ---- 语言条件：文本是字符串列表，跳过 tensor 转换，直接保留 ----
+    # ---- 语言条件：文本是字符串列表，跳过 tensor 转换，直接保留 ----
     strict_text_list = batch.pop("strict_text", None)
     natural_text_list = batch.pop("natural_text", None)
+    pass_task_name_list = batch.pop("pass_task_name", None)
 
     for key in batch:
         if key in [
@@ -2172,12 +2191,16 @@ def collate_batch_keys(batch):
             batch[key] = torch.stack(batch[key])
         if key in ["contact_dirs", "approach_dirs", "offsets"]:
             batch[key] = torch.cat(batch[key])
+        if key in ["pass_task_direction_vectors"]:
+            batch[key] = torch.stack(batch[key])
 
     # 把列表重新塞回 batch 字典里传给模型
     if strict_text_list is not None:
         batch["strict_text"] = strict_text_list
     if natural_text_list is not None:
         batch["natural_text"] = natural_text_list
+    if pass_task_name_list is not None:
+        batch["pass_task_name"] = pass_task_name_list
 
     return batch
 

@@ -55,6 +55,7 @@ logger = get_logger(__name__)
 
 # Global variables
 handler_called = False
+language_batch_example_logged = False
 
 
 LANGUAGE_WARMUP_STEPS = 3000.0#2000.0
@@ -91,6 +92,74 @@ def get_language_loss_weights(global_step):
 def model_uses_language_conditioning(model):
     raw_model = model.module if hasattr(model, "module") else model
     return bool(getattr(raw_model, "use_language_conditioning", False))
+
+
+def get_raw_model(model):
+    return model.module if hasattr(model, "module") else model
+
+
+def log_unified_language_model_config(model):
+    raw_model = get_raw_model(model)
+    if not getattr(raw_model, "use_language_conditioning", False):
+        logger.info("Unified LOD-Grasp language config: language conditioning disabled.")
+        return
+
+    logger.info("========== Unified LOD-Grasp Language Config ==========")
+    logger.info(f"LOD_LANGUAGE_MODE = {getattr(raw_model, 'language_mode', 'unknown')}")
+    logger.info(f"use_clip_encoder = {getattr(raw_model, 'use_clip_encoder', False)}")
+    logger.info(f"use_qwen_encoder = {getattr(raw_model, 'use_qwen_encoder', False)}")
+    logger.info(
+        f"use_clip_anchor_loss = {getattr(raw_model, 'use_clip_anchor_loss', False)}"
+    )
+    logger.info("strict_text example = <logged from first batch>")
+    logger.info("natural_text example = <logged from first batch>")
+    logger.info("=======================================================")
+
+
+def maybe_log_unified_language_batch_examples(model, data, rank):
+    global language_batch_example_logged
+    if rank != 0 or language_batch_example_logged:
+        return
+
+    raw_model = get_raw_model(model)
+    if not getattr(raw_model, "use_language_conditioning", False):
+        return
+
+    strict_example = None
+    natural_example = None
+    if isinstance(data.get("strict_text"), list) and data["strict_text"]:
+        strict_example = data["strict_text"][0]
+    if isinstance(data.get("natural_text"), list) and data["natural_text"]:
+        natural_example = data["natural_text"][0]
+
+    logger.info("========== Unified LOD-Grasp Language Config ==========")
+    logger.info(f"LOD_LANGUAGE_MODE = {getattr(raw_model, 'language_mode', 'unknown')}")
+    logger.info(f"use_clip_encoder = {getattr(raw_model, 'use_clip_encoder', False)}")
+    logger.info(f"use_qwen_encoder = {getattr(raw_model, 'use_qwen_encoder', False)}")
+    logger.info(
+        f"use_clip_anchor_loss = {getattr(raw_model, 'use_clip_anchor_loss', False)}"
+    )
+    logger.info(f"strict_text example = {strict_example}")
+    logger.info(f"natural_text example = {natural_example}")
+    logger.info("=======================================================")
+    language_batch_example_logged = True
+
+
+def load_model_state_with_report(model, state_dict, checkpoint_path):
+    incompatible = model.load_state_dict(state_dict, strict=False)
+    missing = list(incompatible.missing_keys)
+    unexpected = list(incompatible.unexpected_keys)
+    logger.info(
+        "Checkpoint state loaded with strict=False: path=%s, missing_keys=%d, unexpected_keys=%d",
+        checkpoint_path,
+        len(missing),
+        len(unexpected),
+    )
+    if missing:
+        logger.info("Missing keys sample: %s", missing[:30])
+    if unexpected:
+        logger.info("Unexpected keys sample: %s", unexpected[:30])
+    return incompatible
 
 
 def losses_have_anchor_loss(losses):
@@ -217,6 +286,8 @@ def train_one_epoch(
 
         if data is None:
             continue
+
+        maybe_log_unified_language_batch_examples(model, data, rank)
 
         global_step += 1
         language_step += 1
@@ -512,6 +583,8 @@ def train(rank, cfg):
         model = GraspGenGenerator.from_config(cfg.diffusion).to(rank)
     elif cfg.train.model_name == "discriminator":
         model = GraspGenDiscriminator.from_config(cfg.discriminator).to(rank)
+    if rank == 0:
+        log_unified_language_model_config(model)
     
     # optimizer = build_optimizer(cfg, model)
 
@@ -559,7 +632,11 @@ def train(rank, cfg):
                 ckpt = torch.load(cfg.train.checkpoint, map_location="cpu")
                 init_epoch = ckpt["epoch"]
                 has_language_state = checkpoint_has_language_state(ckpt)
-                model.load_state_dict(ckpt["model"], strict=False)##############################
+                load_model_state_with_report(
+                    model,
+                    ckpt["model"],
+                    cfg.train.checkpoint,
+                )
                 # 2. 注释掉或删掉加载 optimizer 的代码！
                 # 因为我们的 trainable_params 已经彻底换了，旧的 optimizer 不能用了
                 #optimizer.load_state_dict(ckpt["optimizer"])
@@ -600,7 +677,7 @@ def train(rank, cfg):
         ckpt = torch.load(ckpt_file, map_location="cpu")
         init_epoch = ckpt["epoch"]
         has_language_state = checkpoint_has_language_state(ckpt)
-        model.load_state_dict(ckpt["model"], strict=False)  ##############################
+        load_model_state_with_report(model, ckpt["model"], ckpt_file)
         #optimizer.load_state_dict(ckpt["optimizer"])
         #注释掉或删掉加载 optimizer 的代码！
         logger.info(f"Loading from checkpoint {ckpt_file}")
@@ -615,6 +692,15 @@ def train(rank, cfg):
                 "Checkpoint has no Qwen/LoRA language weights; "
                 "language anchor warmup will start from step 0."
             )
+
+    if OmegaConf.select(cfg, "train.reset_epoch_on_load", default=False):
+        logger.info(
+            "train.reset_epoch_on_load=True: checkpoint weights were loaded, "
+            "but epoch/batch/language_step will start from 0 for a new stage."
+        )
+        init_epoch = 0
+        init_batch_idx = 0
+        init_language_step = 0
 
     batch_idx = init_batch_idx
 

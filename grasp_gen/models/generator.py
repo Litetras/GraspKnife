@@ -53,6 +53,19 @@ logger = get_logger(__name__)
 from grasp_gen.models.clip_text_encoder import TextEncoder  # frozen CLIP text encoder
 
 
+SUPPORTED_LOD_LANGUAGE_MODES = {"clip_strict", "qwen_anchor"}
+
+
+def get_lod_language_mode():
+    mode = os.environ.get("LOD_LANGUAGE_MODE", "qwen_anchor").strip().lower()
+    if mode not in SUPPORTED_LOD_LANGUAGE_MODES:
+        raise ValueError(
+            f"Unsupported LOD_LANGUAGE_MODE={mode!r}. "
+            f"Expected one of {sorted(SUPPORTED_LOD_LANGUAGE_MODES)}."
+        )
+    return mode
+
+
 def _normalize_strict_text(text):
     return " ".join(str(text).lower().replace("_", " ").split())
 
@@ -210,6 +223,17 @@ class GraspGenGenerator(nn.Module):
         self.checkpoint_object_encoder_pretrained = checkpoint_object_encoder_pretrained
         self.use_language_conditioning = use_language_conditioning
         self.lang_proj_dim = lang_proj_dim if use_language_conditioning else 0
+        self.language_mode = (
+            get_lod_language_mode() if self.use_language_conditioning else "none"
+        )
+        self.use_clip_encoder = (
+            self.use_language_conditioning
+            and self.language_mode in {"clip_strict", "qwen_anchor"}
+        )
+        self.use_qwen_encoder = (
+            self.use_language_conditioning and self.language_mode == "qwen_anchor"
+        )
+        self.use_clip_anchor_loss = self.use_qwen_encoder
 # 2.4 抓取表示（Grasp Representation）
 
 # 抓取输出维度由 grasp_repr 参数决定：
@@ -264,47 +288,44 @@ class GraspGenGenerator(nn.Module):
 
 
 
-######################################QWEN##########################
-    # ---- Language conditioning (Qwen 影子教师模式) ---------------------------
+        # ---- Unified language conditioning ----------------------------------------
         if self.use_language_conditioning:
-            # ====================================================================
-            # 【终极控制开关】：
-            # 第一阶段 (特征对齐)：设为 True (冻结DiT，Qwen只学特征)
-            # 第二阶段 (端到端微调)：设为 False (解冻DiT，Qwen接管控制)
-            #self.DISTILL_PHASE =  False #True  ###########################
-            # ====================================================================
+            logger.info(
+                "Unified language conditioning enabled: "
+                f"mode={self.language_mode}, clip={self.use_clip_encoder}, "
+                f"qwen={self.use_qwen_encoder}, clip_anchor_loss={self.use_clip_anchor_loss}"
+            )
 
-            # 1. 老教师：保留原来的 CLIP
-            from grasp_gen.models.clip_text_encoder import TextEncoder
+            # Stage I uses this as the trainable strict phrase prior. Stage II keeps
+            # it frozen as the teacher anchor for Qwen natural-language alignment.
             self.clip_text_encoder = TextEncoder(clip_backbone)
             self.clip_text_projection = nn.Linear(self.clip_text_encoder.embed_dim, lang_proj_dim)
-            
-            # 永远冻结老教师
-            for p in self.clip_text_encoder.parameters(): p.requires_grad = False
-            for p in self.clip_text_projection.parameters(): p.requires_grad = False
 
-            # 2. 新学生：加载你写好的 Qwen 编码器
-            from grasp_gen.models.qwen_text_encoder import QwenTextEncoder
-            # 确保你装了 bitsandbytes (pip install bitsandbytes)，否则 3B 容易爆显存
-            self.qwen_text_encoder = QwenTextEncoder(
-                model_id= "/home/zyp/models/qwen/Qwen2___5-3B-Instruct",#"Qwen/Qwen2.5-3B-Instruct", 
-                target_dim=lang_proj_dim, 
-                use_4bit=True
-            )
-            # A small residual bridge lets Qwen features adapt to the frozen
-            # CLIP-conditioned diffusion head without changing the generator
-            # backbone itself. Zero init keeps the first step identical to the
-            # previous Qwen path, then the adapter learns only the needed delta.
-            self.language_adapter = nn.Sequential(
-                nn.LayerNorm(lang_proj_dim),
-                nn.Linear(lang_proj_dim, lang_proj_dim * 2),
-                nn.GELU(),
-                nn.Linear(lang_proj_dim * 2, lang_proj_dim),
-            )
-            nn.init.zeros_(self.language_adapter[-1].weight)
-            nn.init.zeros_(self.language_adapter[-1].bias)
+            # CLIP itself is always frozen. In Stage I the projection learns the
+            # strict phrase prior; in Stage II the projection is frozen teacher state.
+            for p in self.clip_text_encoder.parameters():
+                p.requires_grad = False
+            if self.language_mode == "qwen_anchor":
+                for p in self.clip_text_projection.parameters():
+                    p.requires_grad = False
 
-########################################################QWEN########
+                from grasp_gen.models.qwen_text_encoder import QwenTextEncoder
+
+                self.qwen_text_encoder = QwenTextEncoder(
+                    model_id="/home/zyp/models/qwen/Qwen2___5-3B-Instruct",
+                    target_dim=lang_proj_dim,
+                    use_4bit=True,
+                )
+                # Residual bridge: Qwen features learn to land in the CLIP-prior
+                # feature space without changing the frozen grasp prior.
+                self.language_adapter = nn.Sequential(
+                    nn.LayerNorm(lang_proj_dim),
+                    nn.Linear(lang_proj_dim, lang_proj_dim * 2),
+                    nn.GELU(),
+                    nn.Linear(lang_proj_dim * 2, lang_proj_dim),
+                )
+                nn.init.zeros_(self.language_adapter[-1].weight)
+                nn.init.zeros_(self.language_adapter[-1].bias)
 
 
 
@@ -384,14 +405,15 @@ class GraspGenGenerator(nn.Module):
                 )
 
 
-#####################################QWEN
-# 如果是蒸馏阶段，强制冻结 DiT 网络和点云提取网络，只准 Qwen 的 MLP 和 LoRA 学习
-        #if getattr(self, 'DISTILL_PHASE', False):#你之前加了一段判断是不是蒸馏阶段才冻结 DiT 的代码。
-#为了防止进入阶段 2 后 DiT 解冻导致你的 16G 显卡爆显存 (OOM)，我们需要去掉 if 判断，让 DiT 永远保持冻结，只允许 Qwen 学习。
-        logger.info("Distill Phase: Freezing Object Encoder and Diffusion Head...")
-        for p in self.object_encoder.parameters(): p.requires_grad = False
-        for p in self.diffusion_head.parameters(): p.requires_grad = False
-#####################################QWEN
+        if self.use_qwen_encoder:
+            logger.info(
+                "Qwen anchor stage: freezing Object Encoder and Diffusion Head; "
+                "training Qwen-LoRA/projector/language adapter only."
+            )
+            for p in self.object_encoder.parameters():
+                p.requires_grad = False
+            for p in self.diffusion_head.parameters():
+                p.requires_grad = False
 
 
 
@@ -462,6 +484,66 @@ class GraspGenGenerator(nn.Module):
             tuple: (outputs, losses, stats) containing generated grasps and optional metrics
         """
         return self.forward_inference(data, return_metrics=return_metrics)
+
+    def _get_language_texts(self, data, key, *, required=True):
+        if key in data:
+            return data[key]
+        if key == "strict_text" and "text" in data:
+            return data["text"]
+        if required:
+            raise ValueError(
+                f"Language conditioning mode={self.language_mode} requires data['{key}']."
+            )
+        return None
+
+    def _encode_clip_strict_features(self, strict_texts):
+        clip_feat = self.clip_text_encoder(strict_texts)
+        return self.clip_text_projection(clip_feat)
+
+    def _build_train_language_features(self, data, mask_batch):
+        if not self.use_language_conditioning:
+            return None
+
+        data.pop("temp_anchor_loss", None)
+        strict_texts = self._get_language_texts(data, "strict_text")
+
+        if self.language_mode == "clip_strict":
+            clip_feat = self._encode_clip_strict_features(strict_texts)
+            return clip_feat[mask_batch]
+
+        if self.language_mode == "qwen_anchor":
+            natural_texts = self._get_language_texts(data, "natural_text")
+            with torch.no_grad():
+                clip_feat = self._encode_clip_strict_features(strict_texts)
+                clip_feat = clip_feat[mask_batch]
+
+            qwen_feat = self.qwen_text_encoder(natural_texts)
+            qwen_feat = qwen_feat[mask_batch]
+            adapted_text_feat = qwen_feat + self.language_adapter(qwen_feat)
+            data["temp_anchor_loss"] = torch.nn.functional.mse_loss(
+                adapted_text_feat,
+                clip_feat,
+            )
+            return adapted_text_feat
+
+        raise ValueError(f"Unsupported language mode: {self.language_mode}")
+
+    def _build_inference_language_features(self, data, mask_batch):
+        if not self.use_language_conditioning:
+            return None
+
+        if self.language_mode == "clip_strict":
+            strict_texts = self._get_language_texts(data, "strict_text")
+            clip_feat = self._encode_clip_strict_features(strict_texts)
+            return clip_feat[mask_batch]
+
+        if self.language_mode == "qwen_anchor":
+            natural_texts = self._get_language_texts(data, "natural_text")
+            qwen_feat = self.qwen_text_encoder(natural_texts)
+            qwen_feat = qwen_feat[mask_batch]
+            return qwen_feat + self.language_adapter(qwen_feat)
+
+        raise ValueError(f"Unsupported language mode: {self.language_mode}")
 
     def forward_train(self, data):
         """Training forward pass implementing the diffusion process.
@@ -544,31 +626,9 @@ class GraspGenGenerator(nn.Module):
                 mask_batch
             ]  # Redistribute object embeddings to full batch, result is [batch_size, self.num_obs_dim]
 
-# ====================================================================
             if self.use_language_conditioning:
-                if "strict_text" not in data or "natural_text" not in data:
-                    raise ValueError("Missing language keys in data")
-                # 1. 提取老教师 CLIP 的标准特征 (无梯度，作为物理锚点)
-                with torch.no_grad():
-                    clip_feat = self.clip_text_encoder(data["strict_text"])
-                    clip_feat = self.clip_text_projection(clip_feat)
-                    clip_feat = clip_feat[mask_batch]
-
-                # 2. 提取学生 Qwen 的特征 (带梯度，准备接管世界)
-                qwen_feat = self.qwen_text_encoder(data["natural_text"])
-                qwen_feat = qwen_feat[mask_batch]
-                adapted_text_feat = qwen_feat + self.language_adapter(qwen_feat)
-
-                # 3. 【你的核心创新】：特征锚定 Loss (Feature Anchoring)
-                # Anchor the exact feature consumed by the frozen diffusion head.
-
-                distill_loss = torch.nn.functional.mse_loss(adapted_text_feat, clip_feat)
-                data["temp_anchor_loss"] = distill_loss # <--- 临时存在 data 里过渡一下
-
-                # 4. 将适配后的 Qwen 特征喂给冻结的 DiT。
-                text_feat = adapted_text_feat
+                text_feat = self._build_train_language_features(data, mask_batch)
                 object_embedding = torch.cat([object_embedding, text_feat], dim=-1)
-# ====================================================================
 
             # # ---- Language conditioning -------------------------------------------
             # if self.use_language_conditioning:
@@ -806,15 +866,7 @@ class GraspGenGenerator(nn.Module):
 
                 # ---- Language conditioning (Inference 模式) -------------------------
                 if self.use_language_conditioning:
-                    if "strict_text" not in data or "natural_text" not in data:
-                        raise ValueError("Missing language keys in data")
-
-                    # Keep inference on the same language path used in training:
-                    # Qwen features are translated by the residual adapter before
-                    # they enter the frozen diffusion head.
-                    qwen_feat = self.qwen_text_encoder(data["natural_text"]) 
-                    qwen_feat = qwen_feat[mask_batch]
-                    text_feat = qwen_feat + self.language_adapter(qwen_feat)
+                    text_feat = self._build_inference_language_features(data, mask_batch)
                     object_embedding = torch.cat([object_embedding, text_feat], dim=-1)
 
 
