@@ -3,7 +3,7 @@
 # Fixed parameters
 export NGPU=1
 export NWORKER=6
-export NEPOCH=7000  #>6000  #这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
+export NEPOCH=10000 #8000  #>6000  #这次运行可能需要至少 1K 个 epoch 才能收敛。然而，对于大型物体数据集（例如 8K 个物体的数据集），它需要大约 3-5K 个 epoch 才能收敛。
 export BATCH=16
 export PRINT_FREQ=10
 export PLOT_FREQ=10
@@ -29,7 +29,7 @@ export RESULTS_DIR="/results/tutorial"
 export GRASP_DATASET_DIR="$GRASP_DIR"
 export SPLIT_DATASET_DIR="$OBJECT_DATASET_DIR"
 export METHOD="grasp_gen"
-export RATIO="[0.50,0.40,0.05,0.05,0.00,0.00,0.00]" #"[0.25,0.24,0.00,0.01,0.00,0.25,0.25]"################################危险###########
+export RATIO="[0.50,0.45,0.00,0.05,0.00,0.00,0.00]" #"[0.25,0.24,0.00,0.01,0.00,0.25,0.25]"################################危险###########
 export PYOPENGL_PLATFORM="osmesa"
 export LOG_DIR="${DIS_LOG_DIR:-$RESULTS_DIR/logs/${GRIPPER_NAME}_dis_test}"
 export CACHE_DIR="$RESULTS_DIR/cache"

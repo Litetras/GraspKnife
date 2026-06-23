@@ -79,51 +79,17 @@ if not logger.handlers:
 OBJECT_ID2NAME = {
     0: "brush",
     1: "drill",
-    2: "hammer",
-    3: "knife",
-    4: "mug",
-    5: "screwdriver",
-    6: "spoon",
+    2: "fork",
+    3: "hammer",
+    4: "key",
+    5: "knife",
+    6: "mug",
+    7: "pan",
+    8: "spatula",
+    9: "spoon",
 }
 
 OBJECT_NAME2ID = {v: k for k, v in OBJECT_ID2NAME.items()}
-
-PASS_TASK_ALLOWED_DIRECTIONS = {
-    "brush_passing": {
-        "object": "brush",
-        "part": "head",
-        "directions": {
-            "up": [0.0, -1.0, 0.0],
-            "down": [0.0, 1.0, 0.0],
-        },
-    },
-    "hammer_passing": {
-        "object": "hammer",
-        "part": "head",
-        "directions": {
-            "up": [0.0, -1.0, 0.0],
-            "down": [0.0, 1.0, 0.0],
-        },
-    },
-    "drill_passing": {
-        "object": "drill",
-        "part": "head",
-        "directions": {
-            "left": [0.0, 0.0, 1.0],
-            "right": [0.0, 0.0, -1.0],
-            "front": [-1.0, 0.0, 0.0],
-        },
-    },
-    "spoon_passing": {
-        "object": "spoon",
-        "part": "head",
-        "directions": {
-            "left": [0.0, 1.0, 0.0],
-            "right": [0.0, -1.0, 0.0],
-            "front": [1.0, 0.0, 0.0],
-        },
-    },
-}
 
 SEMANTIC_REGIONS = {"handle", "head", "blade", "rim", "shaft"}
 SEMANTIC_ORIENTATIONS = {
@@ -1828,24 +1794,6 @@ class ObjectPickDataset(PickDataset):
             part=part,
             strict_text=strict_text,
         )
-
-        outputs["pass_task_name"] = ""
-        outputs["pass_task_direction_vectors"] = torch.empty(0, 3, dtype=torch.float32)
-        for task_name, task_cfg in PASS_TASK_ALLOWED_DIRECTIONS.items():
-            if (
-                tool == task_cfg["object"]
-                and part == task_cfg["part"]
-                and direction in task_cfg["directions"]
-            ):
-                canonical_dirs = np.array(
-                    list(task_cfg["directions"].values()), dtype=np.float32
-                )
-                rotation = T_aug[:3, :3] if self.rotation_augmentation else np.eye(3)
-                outputs["pass_task_name"] = task_name
-                outputs["pass_task_direction_vectors"] = torch.from_numpy(
-                    (rotation @ canonical_dirs.T).T
-                ).float()
-                break
 
         # ===================================================================
 

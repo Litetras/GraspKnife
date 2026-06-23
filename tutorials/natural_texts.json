@@ -93,5 +93,70 @@
     "Grasp the front side of the spoon head to pass it.",
     "Hold the front side of the spoon bowl for a handoff.",
     "Pass me the spoon."
+  ],
+  "drill_down_handle": [
+    "Grasp the drill handle to pass.",
+    "Hold the lower drill handle for a handoff.",
+    "Pass me the drill by the handle."
+  ],
+  "fork_up_handle": [
+    "Grasp the fork to eat.",
+    "Grasp the fork handle to eat.",
+    "Hold the fork by the handle for eating."
+  ],
+  "fork_left_head": [
+    "Grasp the left side of the fork head to pass it.",
+    "Hold the left side of the fork head for a handoff.",
+    "Pass me the fork."
+  ],
+  "fork_right_head": [
+    "Grasp the right side of the fork head to pass it.",
+    "Hold the right side of the fork head for a handoff.",
+    "Pass me the fork."
+  ],
+  "key_left_handle": [
+    "Grasp the key to unlock.",
+    "Grasp the left side of the key handle to unlock.",
+    "Hold the key handle for unlocking."
+  ],
+  "key_right_handle": [
+    "Grasp the key to unlock.",
+    "Grasp the right side of the key handle to unlock.",
+    "Hold the key handle for unlocking."
+  ],
+  "key_left_head": [
+    "Grasp the left side of the key head to pass it.",
+    "Hold the left side of the key head for a handoff.",
+    "Pass me the key."
+  ],
+  "key_right_head": [
+    "Grasp the right side of the key head to pass it.",
+    "Hold the right side of the key head for a handoff.",
+    "Pass me the key."
+  ],
+  "pan_up_handle": [
+    "Grasp the pan to cook.",
+    "Grasp the pan handle to cook.",
+    "Hold the pan by the handle for cooking."
+  ],
+  "pan_up_rim": [
+    "Grasp the pan rim to pass it.",
+    "Hold the pan rim for a handoff.",
+    "Pass me the pan."
+  ],
+  "spatula_up_handle": [
+    "Grasp the spatula to cook.",
+    "Grasp the spatula handle to cook.",
+    "Hold the spatula by the handle for cooking."
+  ],
+  "spatula_left_head": [
+    "Grasp the left side of the spatula head to pass it.",
+    "Hold the left side of the spatula head for a handoff.",
+    "Pass me the spatula."
+  ],
+  "spatula_right_head": [
+    "Grasp the right side of the spatula head to pass it.",
+    "Hold the right side of the spatula head for a handoff.",
+    "Pass me the spatula."
   ]
 }
