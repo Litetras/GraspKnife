@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import random
+import re
 import time
 from collections import defaultdict
 from contextlib import contextmanager, nullcontext
@@ -90,6 +91,9 @@ OBJECT_ID2NAME = {
 }
 
 OBJECT_NAME2ID = {v: k for k, v in OBJECT_ID2NAME.items()}
+DEFAULT_ABLATION_SUBSET_CATEGORIES = ("knife", "hammer", "brush", "spoon")
+TRUE_STRINGS = {"1", "true", "yes", "y", "on"}
+FALSE_STRINGS = {"0", "false", "no", "n", "off", ""}
 
 SEMANTIC_REGIONS = {"handle", "head", "blade", "rim", "shaft"}
 SEMANTIC_ORIENTATIONS = {
@@ -113,6 +117,84 @@ SEMANTIC_DIRECTION_VECTORS = {
     "top": [0.0, 0.0, 1.0],
     "low": [0.0, 0.0, -1.0],
 }
+
+ORIENTATION_WORDS_FOR_TEXT = {
+    "up",
+    "upward",
+    "upwards",
+    "upper",
+    "top",
+    "down",
+    "downward",
+    "downwards",
+    "lower",
+    "low",
+    "left",
+    "leftward",
+    "leftwards",
+    "right",
+    "rightward",
+    "rightwards",
+    "front",
+    "forward",
+    "forwards",
+    "back",
+    "backward",
+    "backwards",
+    "rear",
+}
+
+
+def parse_bool_like(value, default=False):
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    text = str(value).strip().lower()
+    if text in TRUE_STRINGS:
+        return True
+    if text in FALSE_STRINGS:
+        return False
+    return default
+
+
+def env_bool(name, default=False):
+    return parse_bool_like(os.environ.get(name), default=default)
+
+
+def strip_orientation_words_from_text(text):
+    """Remove explicit orientation words for the w/o orientation ablation."""
+    if not text:
+        return text
+
+    def repl(match):
+        word = match.group(0).lower()
+        return "" if word in ORIENTATION_WORDS_FOR_TEXT else match.group(0)
+
+    stripped = re.sub(r"\b[a-zA-Z]+\b", repl, str(text))
+    stripped = re.sub(r"\s+([,.!?;:])", r"\1", stripped)
+    stripped = re.sub(r"\s{2,}", " ", stripped)
+    return stripped.strip()
+
+
+def normalize_object_category_filter(value):
+    if value is None:
+        return set()
+    if isinstance(value, str):
+        raw_items = value.split(",")
+    else:
+        try:
+            raw_items = list(value)
+        except TypeError:
+            raw_items = [value]
+
+    return {
+        str(item).strip().lower()
+        for item in raw_items
+        if str(item).strip() != ""
+    }
 
 
 class DatasetTimingProfiler:
@@ -306,16 +388,16 @@ def is_valid_cache_dir(cfg: DictConfig) -> bool:
 
     if len(json_files) == 0:
         logger.info(
-            f"[CACHE VALIDATION] No denylist found in {dataset_cache_dir}, deleting cache dir. It may have been improperly created before."
+            f"[CACHE VALIDATION] No denylist found in {dataset_cache_dir}. "
+            "Keeping existing cache files and entering prefiltering so cache construction can resume."
         )
-        os.system(f"rm -rf {dataset_cache_dir}")  # Save from future misery
         return False
     data_files = glob.glob(os.path.join(dataset_cache_dir, "*.h5"))
     if len(data_files) == 0:
         logger.info(
-            f"[CACHE VALIDATION] No data files found in {dataset_cache_dir}, deleting cache dir. It may have been improperly created before."
+            f"[CACHE VALIDATION] No data files found in {dataset_cache_dir}. "
+            "Entering prefiltering; no cache directory deletion will be performed."
         )
-        os.system(f"rm -rf {dataset_cache_dir}")  # Save from future misery
         return False
     if len(data_files) > 0:
         for split in ["train", "valid"]:
@@ -342,18 +424,28 @@ def is_valid_cache_dir(cfg: DictConfig) -> bool:
                     f"[CACHE VALIDATION] Error loading cache file {path_to_h5_file}: {e}"
                 )
                 logger.error(
-                    f"[CACHE VALIDATION] Cache file {path_to_h5_file} is not valid, deleting cache dir. It may have been improperly created before."
+                    f"[CACHE VALIDATION] Cache file {path_to_h5_file} is not valid. "
+                    "Renaming this h5 only and keeping the rest of the cache directory."
                 )
-                os.system(f"rm -rf {path_to_h5_file}")  # Save from future misery
+                corrupt_path = f"{path_to_h5_file}.corrupt"
+                try:
+                    os.replace(path_to_h5_file, corrupt_path)
+                except OSError:
+                    pass
                 return False
             except KeyError as e:
                 logger.error(
                     f"[CACHE VALIDATION] KeyError loading cache file {path_to_h5_file}: {e}"
                 )
                 logger.error(
-                    f"[CACHE VALIDATION] Cache file {path_to_h5_file} is not valid, deleting cache dir. It may have been improperly created before."
+                    f"[CACHE VALIDATION] Cache file {path_to_h5_file} is not valid. "
+                    "Renaming this h5 only and keeping the rest of the cache directory."
                 )
-                os.system(f"rm -rf {path_to_h5_file}")  # Save from future misery
+                corrupt_path = f"{path_to_h5_file}.corrupt"
+                try:
+                    os.replace(path_to_h5_file, corrupt_path)
+                except OSError:
+                    pass
                 return False
 
             cache_dir = cfg.cache_dir
@@ -587,6 +679,8 @@ class PickDataset(Dataset):
         onpolicy_dataset_h5_path=None,
         preload_dataset=False,
         redundancy=1,
+        ablation_subset_enabled=False,
+        ablation_subset_categories=None,
     ):
         self.split = split
         self.scenes, self.scene2h5 = [], {}
@@ -625,6 +719,8 @@ class PickDataset(Dataset):
         self.preload_dataset = preload_dataset
         self.redundancy = redundancy
         self.load_discriminator_dataset = load_discriminator_dataset
+        self.ablation_subset_enabled = ablation_subset_enabled
+        self.ablation_subset_categories = ablation_subset_categories
         self._prefiltering = prefiltering
         self.denylist_path = get_denylist_path(
             cache_dir, root_dir, prob_point_cloud, load_discriminator_dataset
@@ -675,6 +771,64 @@ class PickDataset(Dataset):
                 f"Removed {init_datapoints - len(self.scenes)} scenes. "
                 f"Remaining datapoints={len(self.scenes)}"
             )
+        # =========================================================
+
+        # ================= 新增：AAAI 消融实验代表性子集 =================
+        # 默认关闭。显式开启后只保留指定物体类别，默认是
+        # knife / hammer / brush / spoon，用于小规模消融实验。
+        env_subset_enabled = os.environ.get("GRASPGEN_ABLATION_SUBSET")
+        if env_subset_enabled is not None:
+            ablation_subset_enabled = parse_bool_like(
+                env_subset_enabled,
+                default=parse_bool_like(ablation_subset_enabled, default=False),
+            )
+        else:
+            ablation_subset_enabled = parse_bool_like(
+                ablation_subset_enabled,
+                default=False,
+            )
+
+        env_subset_categories = os.environ.get("GRASPGEN_ABLATION_SUBSET_CATEGORIES")
+        if env_subset_categories is not None and env_subset_categories.strip() != "":
+            ablation_subset_categories = env_subset_categories
+
+        self.ablation_subset_enabled = ablation_subset_enabled
+        self.ablation_subset_categories = ablation_subset_categories
+
+        if ablation_subset_enabled:
+            allowed_categories = normalize_object_category_filter(
+                ablation_subset_categories
+            )
+            if len(allowed_categories) == 0:
+                allowed_categories = set(DEFAULT_ABLATION_SUBSET_CATEGORIES)
+
+            unknown_categories = sorted(
+                allowed_categories - set(OBJECT_NAME2ID.keys())
+            )
+            if unknown_categories:
+                logger.warning(
+                    f"[ABLATION SUBSET] Unknown categories ignored: {unknown_categories}"
+                )
+                allowed_categories = allowed_categories - set(unknown_categories)
+            self.ablation_subset_categories = tuple(sorted(allowed_categories))
+
+            init_datapoints = len(self.scenes)
+            self.scenes = [
+                scene
+                for scene in self.scenes
+                if parse_object_category_from_scene(scene) in allowed_categories
+            ]
+            logger.info(
+                f"[ABLATION SUBSET] Enabled categories={sorted(allowed_categories)}. "
+                f"Removed {init_datapoints - len(self.scenes)} scenes. "
+                f"Remaining datapoints={len(self.scenes)}"
+            )
+
+            if len(self.scenes) == 0:
+                raise ValueError(
+                    "[ABLATION SUBSET] Enabled but no scenes remain. "
+                    "Check train/valid split names and allowed categories."
+                )
         # =========================================================
 
         self.overfitting_mode = False
@@ -887,7 +1041,7 @@ class PickDataset(Dataset):
                 )
             logger.info(f"Onpolicy dataset: That took {time.time() - t0}s. Phew...")
 
-    def load_cache(self, cache_save_freq: int = 2000):
+    def load_cache(self, cache_save_freq: int = None):
         """
         Converts the dataset into a cached file, loads to system memory.
         """
@@ -895,6 +1049,13 @@ class PickDataset(Dataset):
 
         assert self.preload_dataset
         logger.info("Preloading dataset to memory")
+        if cache_save_freq is None:
+            try:
+                cache_save_freq = int(os.environ.get("GRASPGEN_CACHE_SAVE_FREQ", "100"))
+            except ValueError:
+                cache_save_freq = 100
+        cache_save_freq = max(1, int(cache_save_freq))
+        logger.info(f"Cache save frequency: every {cache_save_freq} newly built objects")
 
         cache_save_path = ""
         save_emd_data = False
@@ -1085,6 +1246,12 @@ class PickDataset(Dataset):
         args["onpolicy_dataset_h5_path"] = cfg.onpolicy_dataset_h5_path
         args["preload_dataset"] = cfg.preload_dataset
         args["redundancy"] = cfg.redundancy
+        args["ablation_subset_enabled"] = getattr(
+            cfg, "ablation_subset_enabled", False
+        )
+        args["ablation_subset_categories"] = getattr(
+            cfg, "ablation_subset_categories", None
+        )
         return args
 
     def __len__(self):
@@ -1514,8 +1681,14 @@ class ObjectPickDataset(PickDataset):
                 opposite_keys = self.semantic_negative_scenes[current_scene]
 
             # 限制每个样本最多读几个语义负样本文件，避免大数据集训练时 I/O 被拖慢。
-            max_opp_files = 2
-            if len(opposite_keys) > max_opp_files:
+            max_opp_files = (
+                0
+                if env_bool("GRASPGEN_DISABLE_SEMANTIC_NEGATIVES", default=False)
+                else 2
+            )
+            if max_opp_files <= 0:
+                opposite_keys = []
+            elif len(opposite_keys) > max_opp_files:
                 opposite_keys = random.sample(opposite_keys, max_opp_files)
 
             reader_logger = logging.getLogger("grasp_gen.dataset.dataset_utils")
@@ -1758,28 +1931,44 @@ class ObjectPickDataset(PickDataset):
             elif "_blade" in obj_name:
                 part = "blade"
             
-        strict_text = f"{direction} {part}".strip()
+        no_orientation_condition = env_bool(
+            "GRASPGEN_NO_ORIENTATION_CONDITION",
+            default=False,
+        )
+        strict_direction = "" if no_orientation_condition else direction
+        strict_text = f"{strict_direction} {part}".strip()
         outputs["strict_text"] = strict_text  # 存入 CLIP 的专属锚点
         object_name, _ = self.scene_object_categories.get(self.scenes[idx], (None, -1))
         outputs["pass_task_name"] = "_".join(
-            x for x in [object_name or "object", part, direction] if x
+            x for x in [object_name or "object", part, strict_direction] if x
         )
         outputs["pass_task_direction_vectors"] = torch.tensor(
-            SEMANTIC_DIRECTION_VECTORS.get(direction, [0.0, 0.0, 0.0]),
+            SEMANTIC_DIRECTION_VECTORS.get(strict_direction, [0.0, 0.0, 0.0]),
             dtype=torch.float32,
         )
 
         # 3. 从 JSON 读取 Qwen 的自然语言模板；读不到时再走安全兜底。
         tool = object_name or "object"
-        direction_part = "_".join([x for x in [direction, part] if x])
-        natural_text_keys = [x for x in [
-            obj_name,
-            "_".join([x for x in [tool, direction, part] if x]),
-            "_".join([x for x in [tool, part, direction] if x]),
-            direction_part,
-            "_".join([x for x in [tool, direction] if x]),
-            "_".join([x for x in [tool, part] if x]),
-        ] if x]
+        if no_orientation_condition:
+            natural_text_keys = [
+                x
+                for x in [
+                    "_".join([x for x in [tool, part] if x]),
+                    part,
+                    tool,
+                ]
+                if x
+            ]
+        else:
+            direction_part = "_".join([x for x in [direction, part] if x])
+            natural_text_keys = [x for x in [
+                obj_name,
+                "_".join([x for x in [tool, direction, part] if x]),
+                "_".join([x for x in [tool, part, direction] if x]),
+                direction_part,
+                "_".join([x for x in [tool, direction] if x]),
+                "_".join([x for x in [tool, part] if x]),
+            ] if x]
 
         natural_templates = []
         for text_key in natural_text_keys:
@@ -1800,18 +1989,23 @@ class ObjectPickDataset(PickDataset):
                 )
                 self._missing_natural_text_keys.add(missing_key)
             if part:
-                natural_templates = [f"Grasp the {tool} by the {part} for this task."]
+                natural_templates = [f"Grasp the {tool} by the {part} for the task."]
             else:
-                natural_templates = [f"Grasp the {tool} for this task."]
+                natural_templates = [f"Grasp the {tool} for the task."]
             
         # 4. 随机挑选一句自然语言，存入 natural_text (Qwen 专属)
-        outputs["natural_text"] = format_text_template(
+        natural_text = format_text_template(
             random.choice(natural_templates),
             tool=tool,
-            direction=direction,
+            direction=strict_direction,
             part=part,
             strict_text=strict_text,
         )
+        if no_orientation_condition:
+            natural_text = strip_orientation_words_from_text(natural_text)
+            if not natural_text:
+                natural_text = f"Grasp the {tool} by the {part} for the task." if part else f"Grasp the {tool} for the task."
+        outputs["natural_text"] = natural_text
 
         # ===================================================================
 

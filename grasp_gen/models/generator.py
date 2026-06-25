@@ -53,17 +53,32 @@ logger = get_logger(__name__)
 from grasp_gen.models.clip_text_encoder import TextEncoder  # frozen CLIP text encoder
 
 
-SUPPORTED_LOD_LANGUAGE_MODES = {"clip_strict", "qwen_anchor"}
+SUPPORTED_LOD_LANGUAGE_MODES = {
+    "clip_strict",
+    "qwen_anchor",
+    "clip_natural",
+    "qwen_no_anchor",
+}
 
 
 def get_lod_language_mode():
-    mode = os.environ.get("LOD_LANGUAGE_MODE", "qwen_anchor").strip().lower()
+    mode = os.environ.get(
+        "GRASPGEN_LANGUAGE_MODE",
+        os.environ.get("LOD_LANGUAGE_MODE", "qwen_anchor"),
+    ).strip().lower()
     if mode not in SUPPORTED_LOD_LANGUAGE_MODES:
         raise ValueError(
-            f"Unsupported LOD_LANGUAGE_MODE={mode!r}. "
+            f"Unsupported GRASPGEN_LANGUAGE_MODE/LOD_LANGUAGE_MODE={mode!r}. "
             f"Expected one of {sorted(SUPPORTED_LOD_LANGUAGE_MODES)}."
         )
     return mode
+
+
+def env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 def _normalize_strict_text(text):
@@ -226,14 +241,29 @@ class GraspGenGenerator(nn.Module):
         self.language_mode = (
             get_lod_language_mode() if self.use_language_conditioning else "none"
         )
+        self.disable_clip_anchor = env_bool(
+            "GRASPGEN_DISABLE_CLIP_ANCHOR",
+            default=False,
+        )
         self.use_clip_encoder = (
             self.use_language_conditioning
-            and self.language_mode in {"clip_strict", "qwen_anchor"}
+            and (
+                self.language_mode in {"clip_strict", "clip_natural"}
+                or (
+                    self.language_mode == "qwen_anchor"
+                    and not self.disable_clip_anchor
+                )
+            )
         )
         self.use_qwen_encoder = (
-            self.use_language_conditioning and self.language_mode == "qwen_anchor"
+            self.use_language_conditioning
+            and self.language_mode in {"qwen_anchor", "qwen_no_anchor"}
         )
-        self.use_clip_anchor_loss = self.use_qwen_encoder
+        self.use_clip_anchor_loss = (
+            self.use_language_conditioning
+            and self.language_mode == "qwen_anchor"
+            and not self.disable_clip_anchor
+        )
 # 2.4 抓取表示（Grasp Representation）
 
 # 抓取输出维度由 grasp_repr 参数决定：
@@ -296,19 +326,24 @@ class GraspGenGenerator(nn.Module):
                 f"qwen={self.use_qwen_encoder}, clip_anchor_loss={self.use_clip_anchor_loss}"
             )
 
-            # Stage I uses this as the trainable strict phrase prior. Stage II keeps
-            # it frozen as the teacher anchor for Qwen natural-language alignment.
-            self.clip_text_encoder = TextEncoder(clip_backbone)
-            self.clip_text_projection = nn.Linear(self.clip_text_encoder.embed_dim, lang_proj_dim)
+            if self.use_clip_encoder:
+                # Stage I uses this as the trainable strict phrase prior. Stage II keeps
+                # it frozen as the teacher anchor for Qwen natural-language alignment.
+                self.clip_text_encoder = TextEncoder(clip_backbone)
+                self.clip_text_projection = nn.Linear(
+                    self.clip_text_encoder.embed_dim,
+                    lang_proj_dim,
+                )
 
-            # CLIP itself is always frozen. In Stage I the projection learns the
-            # strict phrase prior; in Stage II the projection is frozen teacher state.
-            for p in self.clip_text_encoder.parameters():
-                p.requires_grad = False
-            if self.language_mode == "qwen_anchor":
+                # CLIP itself is always frozen. In Stage I the projection learns the
+                # strict phrase prior; in Stage II the projection is frozen teacher state.
+                for p in self.clip_text_encoder.parameters():
+                    p.requires_grad = False
+            if self.use_clip_anchor_loss:
                 for p in self.clip_text_projection.parameters():
                     p.requires_grad = False
 
+            if self.use_qwen_encoder:
                 from grasp_gen.models.qwen_text_encoder import QwenTextEncoder
 
                 self.qwen_text_encoder = QwenTextEncoder(
@@ -505,25 +540,33 @@ class GraspGenGenerator(nn.Module):
             return None
 
         data.pop("temp_anchor_loss", None)
-        strict_texts = self._get_language_texts(data, "strict_text")
-
         if self.language_mode == "clip_strict":
+            strict_texts = self._get_language_texts(data, "strict_text")
             clip_feat = self._encode_clip_strict_features(strict_texts)
             return clip_feat[mask_batch]
 
-        if self.language_mode == "qwen_anchor":
+        if self.language_mode == "clip_natural":
             natural_texts = self._get_language_texts(data, "natural_text")
-            with torch.no_grad():
-                clip_feat = self._encode_clip_strict_features(strict_texts)
-                clip_feat = clip_feat[mask_batch]
+            clip_feat = self._encode_clip_strict_features(natural_texts)
+            return clip_feat[mask_batch]
+
+        if self.language_mode in {"qwen_anchor", "qwen_no_anchor"}:
+            natural_texts = self._get_language_texts(data, "natural_text")
+            clip_feat = None
+            if self.use_clip_anchor_loss:
+                strict_texts = self._get_language_texts(data, "strict_text")
+                with torch.no_grad():
+                    clip_feat = self._encode_clip_strict_features(strict_texts)
+                    clip_feat = clip_feat[mask_batch]
 
             qwen_feat = self.qwen_text_encoder(natural_texts)
             qwen_feat = qwen_feat[mask_batch]
             adapted_text_feat = qwen_feat + self.language_adapter(qwen_feat)
-            data["temp_anchor_loss"] = torch.nn.functional.mse_loss(
-                adapted_text_feat,
-                clip_feat,
-            )
+            if clip_feat is not None:
+                data["temp_anchor_loss"] = torch.nn.functional.mse_loss(
+                    adapted_text_feat,
+                    clip_feat,
+                )
             return adapted_text_feat
 
         raise ValueError(f"Unsupported language mode: {self.language_mode}")
@@ -537,7 +580,12 @@ class GraspGenGenerator(nn.Module):
             clip_feat = self._encode_clip_strict_features(strict_texts)
             return clip_feat[mask_batch]
 
-        if self.language_mode == "qwen_anchor":
+        if self.language_mode == "clip_natural":
+            natural_texts = self._get_language_texts(data, "natural_text")
+            clip_feat = self._encode_clip_strict_features(natural_texts)
+            return clip_feat[mask_batch]
+
+        if self.language_mode in {"qwen_anchor", "qwen_no_anchor"}:
             natural_texts = self._get_language_texts(data, "natural_text")
             qwen_feat = self.qwen_text_encoder(natural_texts)
             qwen_feat = qwen_feat[mask_batch]
@@ -723,8 +771,9 @@ class GraspGenGenerator(nn.Module):
             dynamic_weight = alpha_prod_t.squeeze(-1) 
             direction_loss = (1.0 - cos_sim) * dynamic_weight
             
-            # 将方向 Loss 加入总 Loss 中，基础权重设为 1.0 即可
-            losses["direction_loss"] = (1.0, direction_loss.mean())
+            # 将方向 Loss 加入总 Loss 中；消融时只关 loss，不关 dir_acc_30 日志。
+            if not env_bool("GRASPGEN_DISABLE_DIRECTION_LOSS", default=False):
+                losses["direction_loss"] = (1.0, direction_loss.mean())
             
             # 记录准确率到 Tensorboard
             with torch.no_grad():
@@ -734,22 +783,25 @@ class GraspGenGenerator(nn.Module):
 
                 # ================= 新增：按物体类别统计方向准确率 =================
                 if "object_ids" in data:
-                    object_ids = data["object_ids"]
-                    if isinstance(object_ids, list):
-                        object_ids = torch.cat(object_ids)
-
-                    object_ids = object_ids.reshape(-1).long().to(device)
-                    for obj_id, obj_name in OBJECT_ID2NAME.items():
-                        obj_mask = object_ids == obj_id
-                        if obj_mask.sum() > 0:
-                            stats[f"dir_acc_30_obj_{obj_name}"] = (
-                                dir_correct_30[obj_mask].float().mean() * 100.0
-                            )
-                            stats[f"dir_count_obj_{obj_name}"] = obj_mask.sum().float()
+                    object_ids = _expand_object_ids_to_grasps(
+                        data["object_ids"],
+                        data.get("strict_text"),
+                        mask_batch,
+                        dir_correct_30.shape[0],
+                        device,
+                    )
+                    if object_ids is not None:
+                        for obj_id, obj_name in OBJECT_ID2NAME.items():
+                            obj_mask = object_ids == obj_id
+                            if obj_mask.sum() > 0:
+                                stats[f"dir_acc_30_obj_{obj_name}"] = (
+                                    dir_correct_30[obj_mask].float().mean() * 100.0
+                                )
+                                stats[f"dir_count_obj_{obj_name}"] = obj_mask.sum().float()
                     stats.update(
                         compute_semantic_direction_stats(
                             dir_correct_30=dir_correct_30,
-                            object_ids=object_ids,
+                            object_ids=data["object_ids"],
                             strict_texts=data.get("strict_text"),
                             mask_batch=mask_batch,
                             device=device,

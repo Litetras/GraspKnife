@@ -40,12 +40,39 @@ from grasp_gen.robot import get_gripper_info
 from grasp_gen.utils.logging_config import get_logger
 from grasp_gen.models.model_utils import load_pretrained_checkpoint_to_dict
 from grasp_gen.models.clip_text_encoder import TextEncoder
-from grasp_gen.models.qwen_text_encoder import QwenTextEncoder
 
 
 
 
 logger = get_logger(__name__)
+
+
+SUPPORTED_LOD_LANGUAGE_MODES = {
+    "clip_strict",
+    "qwen_anchor",
+    "clip_natural",
+    "qwen_no_anchor",
+}
+
+
+def get_lod_language_mode():
+    mode = os.environ.get(
+        "GRASPGEN_LANGUAGE_MODE",
+        os.environ.get("LOD_LANGUAGE_MODE", "qwen_anchor"),
+    ).strip().lower()
+    if mode not in SUPPORTED_LOD_LANGUAGE_MODES:
+        raise ValueError(
+            f"Unsupported GRASPGEN_LANGUAGE_MODE/LOD_LANGUAGE_MODE={mode!r}. "
+            f"Expected one of {sorted(SUPPORTED_LOD_LANGUAGE_MODES)}."
+        )
+    return mode
+
+
+def env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 class GraspGenDiscriminator(nn.Module):
@@ -98,27 +125,59 @@ class GraspGenDiscriminator(nn.Module):
         # ---- 新增语言模块初始化 ----#########
         self.use_language_conditioning = use_language_conditioning
         self.lang_proj_dim = lang_proj_dim if use_language_conditioning else 0
+        self.language_mode = (
+            get_lod_language_mode() if self.use_language_conditioning else "none"
+        )
+        self.disable_clip_anchor = env_bool(
+            "GRASPGEN_DISABLE_CLIP_ANCHOR",
+            default=False,
+        )
+        self.use_clip_encoder = (
+            self.use_language_conditioning
+            and (
+                self.language_mode in {"clip_strict", "clip_natural"}
+                or (
+                    self.language_mode == "qwen_anchor"
+                    and not self.disable_clip_anchor
+                )
+            )
+        )
+        self.use_qwen_encoder = (
+            self.use_language_conditioning
+            and self.language_mode in {"qwen_anchor", "qwen_no_anchor"}
+        )
+        self.use_clip_anchor_loss = (
+            self.use_language_conditioning
+            and self.language_mode == "qwen_anchor"
+            and not self.disable_clip_anchor
+        )
 
         if self.use_language_conditioning:
-            self.clip_text_encoder = TextEncoder(clip_backbone)
-            self.clip_text_projection = nn.Linear(
-                self.clip_text_encoder.embed_dim,
-                lang_proj_dim,
-            )
-            for p in self.clip_text_encoder.parameters():
-                p.requires_grad = False
-            for p in self.clip_text_projection.parameters():
-                p.requires_grad = False
-
-            self.qwen_text_encoder = QwenTextEncoder(
-                model_id="/home/zyp/models/qwen/Qwen2___5-3B-Instruct",
-                target_dim=lang_proj_dim,
-                use_4bit=True
-            )
             logger.info(
-                "Discriminator Language conditioning enabled: "
-                f"CLIP '{clip_backbone}' anchor -> Qwen trainable features"
+                "Discriminator unified language conditioning enabled: "
+                f"mode={self.language_mode}, clip={self.use_clip_encoder}, "
+                f"qwen={self.use_qwen_encoder}, clip_anchor_loss={self.use_clip_anchor_loss}"
             )
+            if self.use_clip_encoder:
+                self.clip_text_encoder = TextEncoder(clip_backbone)
+                self.clip_text_projection = nn.Linear(
+                    self.clip_text_encoder.embed_dim,
+                    lang_proj_dim,
+                )
+                for p in self.clip_text_encoder.parameters():
+                    p.requires_grad = False
+            if self.use_clip_anchor_loss:
+                for p in self.clip_text_projection.parameters():
+                    p.requires_grad = False
+
+            if self.use_qwen_encoder:
+                from grasp_gen.models.qwen_text_encoder import QwenTextEncoder
+
+                self.qwen_text_encoder = QwenTextEncoder(
+                    model_id="/home/zyp/models/qwen/Qwen2___5-3B-Instruct",
+                    target_dim=lang_proj_dim,
+                    use_4bit=True
+                )
 
 
         # if self.use_language_conditioning:
@@ -206,13 +265,24 @@ class GraspGenDiscriminator(nn.Module):
             nn.ReLU(),
             nn.Linear(total_input_dim // 4, 1),
         )
-        # ================== 【显存与特征保护锁】 ==================
-        # 强制冻结点云编码器和抓取姿态编码器，只允许最后的 prediction_head (MLP) 训练
-        logger.info("Freezing Object Encoder and Sample Encoder for Discriminator...")
-        for p in self.object_encoder.parameters(): p.requires_grad = False
-        if hasattr(self, 'sample_encoder'):
-            for p in self.sample_encoder.parameters(): p.requires_grad = False
-        # ========================================================
+        # Stage I discriminator must train its geometry/grasp encoders from
+        # scratch. Freezing them by default leaves random features locked and
+        # makes BCE stay near 0.69. Keep a manual switch only for later
+        # language-only fine-tuning experiments.
+        self.freeze_discriminator_backbone = env_bool(
+            "GRASPGEN_FREEZE_DISCRIMINATOR_BACKBONE",
+            default=False,
+        )
+        if self.freeze_discriminator_backbone:
+            logger.info(
+                "GRASPGEN_FREEZE_DISCRIMINATOR_BACKBONE=1: "
+                "freezing discriminator object/sample encoders."
+            )
+            for p in self.object_encoder.parameters():
+                p.requires_grad = False
+            if hasattr(self, "sample_encoder"):
+                for p in self.sample_encoder.parameters():
+                    p.requires_grad = False
 
         if self.checkpoint_object_encoder_pretrained is not None:
             if os.path.exists(self.checkpoint_object_encoder_pretrained):
@@ -345,20 +415,41 @@ class GraspGenDiscriminator(nn.Module):
         
         # ==== 新增：将语言特征拼接到 total_embedding ====#
         if self.use_language_conditioning:
-            if "strict_text" not in data or "natural_text" not in data:
-                raise ValueError(
-                    "Discriminator: language conditioning requires "
-                    "'strict_text' and 'natural_text'."
-                )
+            data.pop("temp_anchor_loss", None)
 
-            with torch.no_grad():
-                clip_feat = self.clip_text_encoder(data["strict_text"])
-                clip_feat = self.clip_text_projection(clip_feat)
-                clip_feat = clip_feat[mask_batch]
+            if self.language_mode == "clip_strict":
+                if "strict_text" not in data:
+                    raise ValueError("Discriminator clip_strict mode requires 'strict_text'.")
+                text_feat = self.clip_text_encoder(data["strict_text"])
+                text_feat = self.clip_text_projection(text_feat)
+                text_feat = text_feat[mask_batch]
+            elif self.language_mode == "clip_natural":
+                if "natural_text" not in data:
+                    raise ValueError("Discriminator clip_natural mode requires 'natural_text'.")
+                text_feat = self.clip_text_encoder(data["natural_text"])
+                text_feat = self.clip_text_projection(text_feat)
+                text_feat = text_feat[mask_batch]
+            elif self.language_mode in {"qwen_anchor", "qwen_no_anchor"}:
+                if "natural_text" not in data:
+                    raise ValueError(
+                        f"Discriminator {self.language_mode} mode requires 'natural_text'."
+                    )
+                clip_feat = None
+                if self.use_clip_anchor_loss:
+                    if "strict_text" not in data:
+                        raise ValueError("Discriminator qwen_anchor mode requires 'strict_text'.")
+                    with torch.no_grad():
+                        clip_feat = self.clip_text_encoder(data["strict_text"])
+                        clip_feat = self.clip_text_projection(clip_feat)
+                        clip_feat = clip_feat[mask_batch]
 
-            text_feat = self.qwen_text_encoder(data["natural_text"])
-            text_feat = text_feat[mask_batch]
-            data["temp_anchor_loss"] = F.mse_loss(text_feat, clip_feat)
+                text_feat = self.qwen_text_encoder(data["natural_text"])
+                text_feat = text_feat[mask_batch]
+                if clip_feat is not None:
+                    data["temp_anchor_loss"] = F.mse_loss(text_feat, clip_feat)
+            else:
+                raise ValueError(f"Unsupported discriminator language mode: {self.language_mode}")
+
             total_embedding = torch.cat([total_embedding, text_feat], dim=-1)
         # =================================================
         

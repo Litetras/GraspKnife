@@ -101,19 +101,43 @@ def get_raw_model(model):
 def log_unified_language_model_config(model):
     raw_model = get_raw_model(model)
     if not getattr(raw_model, "use_language_conditioning", False):
-        logger.info("Unified LOD-Grasp language config: language conditioning disabled.")
+        logger.info("LOD-Grasp ablation config: language conditioning disabled.")
         return
 
-    logger.info("========== Unified LOD-Grasp Language Config ==========")
-    logger.info(f"LOD_LANGUAGE_MODE = {getattr(raw_model, 'language_mode', 'unknown')}")
-    logger.info(f"use_clip_encoder = {getattr(raw_model, 'use_clip_encoder', False)}")
-    logger.info(f"use_qwen_encoder = {getattr(raw_model, 'use_qwen_encoder', False)}")
+    logger.info("========== LOD-Grasp Ablation Config ==========")
     logger.info(
-        f"use_clip_anchor_loss = {getattr(raw_model, 'use_clip_anchor_loss', False)}"
+        "GRASPGEN_ABLATION_SUBSET = %s",
+        os.environ.get("GRASPGEN_ABLATION_SUBSET", "0"),
     )
+    logger.info(
+        "GRASPGEN_LANGUAGE_MODE = %s",
+        getattr(raw_model, "language_mode", "unknown"),
+    )
+    logger.info(
+        "GRASPGEN_NO_ORIENTATION_CONDITION = %s",
+        os.environ.get("GRASPGEN_NO_ORIENTATION_CONDITION", "0"),
+    )
+    logger.info(
+        "GRASPGEN_DISABLE_DIRECTION_LOSS = %s",
+        os.environ.get("GRASPGEN_DISABLE_DIRECTION_LOSS", "0"),
+    )
+    logger.info(
+        "GRASPGEN_DISABLE_CLIP_ANCHOR = %s",
+        os.environ.get("GRASPGEN_DISABLE_CLIP_ANCHOR", "0"),
+    )
+    logger.info(
+        "GRASPGEN_DISABLE_SEMANTIC_NEGATIVES = %s",
+        os.environ.get("GRASPGEN_DISABLE_SEMANTIC_NEGATIVES", "0"),
+    )
+    logger.info("STAGE1_CHECKPOINT = %s", os.environ.get("STAGE1_CHECKPOINT", ""))
     logger.info("strict_text example = <logged from first batch>")
     logger.info("natural_text example = <logged from first batch>")
-    logger.info("=======================================================")
+    logger.info(f"use_qwen = {getattr(raw_model, 'use_qwen_encoder', False)}")
+    logger.info(f"use_clip = {getattr(raw_model, 'use_clip_encoder', False)}")
+    logger.info(
+        f"use_anchor_loss = {getattr(raw_model, 'use_clip_anchor_loss', False)}"
+    )
+    logger.info("===============================================")
 
 
 def maybe_log_unified_language_batch_examples(model, data, rank):
@@ -132,16 +156,40 @@ def maybe_log_unified_language_batch_examples(model, data, rank):
     if isinstance(data.get("natural_text"), list) and data["natural_text"]:
         natural_example = data["natural_text"][0]
 
-    logger.info("========== Unified LOD-Grasp Language Config ==========")
-    logger.info(f"LOD_LANGUAGE_MODE = {getattr(raw_model, 'language_mode', 'unknown')}")
-    logger.info(f"use_clip_encoder = {getattr(raw_model, 'use_clip_encoder', False)}")
-    logger.info(f"use_qwen_encoder = {getattr(raw_model, 'use_qwen_encoder', False)}")
+    logger.info("========== LOD-Grasp Ablation Config ==========")
     logger.info(
-        f"use_clip_anchor_loss = {getattr(raw_model, 'use_clip_anchor_loss', False)}"
+        "GRASPGEN_ABLATION_SUBSET = %s",
+        os.environ.get("GRASPGEN_ABLATION_SUBSET", "0"),
     )
+    logger.info(
+        "GRASPGEN_LANGUAGE_MODE = %s",
+        getattr(raw_model, "language_mode", "unknown"),
+    )
+    logger.info(
+        "GRASPGEN_NO_ORIENTATION_CONDITION = %s",
+        os.environ.get("GRASPGEN_NO_ORIENTATION_CONDITION", "0"),
+    )
+    logger.info(
+        "GRASPGEN_DISABLE_DIRECTION_LOSS = %s",
+        os.environ.get("GRASPGEN_DISABLE_DIRECTION_LOSS", "0"),
+    )
+    logger.info(
+        "GRASPGEN_DISABLE_CLIP_ANCHOR = %s",
+        os.environ.get("GRASPGEN_DISABLE_CLIP_ANCHOR", "0"),
+    )
+    logger.info(
+        "GRASPGEN_DISABLE_SEMANTIC_NEGATIVES = %s",
+        os.environ.get("GRASPGEN_DISABLE_SEMANTIC_NEGATIVES", "0"),
+    )
+    logger.info("STAGE1_CHECKPOINT = %s", os.environ.get("STAGE1_CHECKPOINT", ""))
     logger.info(f"strict_text example = {strict_example}")
     logger.info(f"natural_text example = {natural_example}")
-    logger.info("=======================================================")
+    logger.info(f"use_qwen = {getattr(raw_model, 'use_qwen_encoder', False)}")
+    logger.info(f"use_clip = {getattr(raw_model, 'use_clip_encoder', False)}")
+    logger.info(
+        f"use_anchor_loss = {getattr(raw_model, 'use_clip_anchor_loss', False)}"
+    )
+    logger.info("===============================================")
     language_batch_example_logged = True
 
 
