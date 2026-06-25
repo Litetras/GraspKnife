@@ -11,6 +11,5 @@ export GRASPGEN_DISABLE_CLIP_ANCHOR=1
 export TARGET="${TARGET:-gen}"
 export STAGE1_CHECKPOINT="${STAGE1_CHECKPOINT:-/results/tutorial/logs/stage1_clip_prior_gen/last.pth}"
 export GEN_LOG_DIR="${GEN_LOG_DIR:-/results/tutorial/logs/ablation_stage2_qwen_no_anchor}"
-export GEN_CHECKPOINT="${GEN_CHECKPOINT:-$STAGE1_CHECKPOINT}"
 
 bash runs/train_stage2_qwen_align.sh
