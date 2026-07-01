@@ -52,6 +52,7 @@ SUPPORTED_LOD_LANGUAGE_MODES = {
     "qwen_anchor",
     "clip_natural",
     "qwen_no_anchor",
+    "qwen_no_feature_anchor",
 }
 
 
@@ -144,7 +145,8 @@ class GraspGenDiscriminator(nn.Module):
         )
         self.use_qwen_encoder = (
             self.use_language_conditioning
-            and self.language_mode in {"qwen_anchor", "qwen_no_anchor"}
+            and self.language_mode
+            in {"qwen_anchor", "qwen_no_anchor", "qwen_no_feature_anchor"}
         )
         self.use_clip_anchor_loss = (
             self.use_language_conditioning
@@ -429,7 +431,11 @@ class GraspGenDiscriminator(nn.Module):
                 text_feat = self.clip_text_encoder(data["natural_text"])
                 text_feat = self.clip_text_projection(text_feat)
                 text_feat = text_feat[mask_batch]
-            elif self.language_mode in {"qwen_anchor", "qwen_no_anchor"}:
+            elif self.language_mode in {
+                "qwen_anchor",
+                "qwen_no_anchor",
+                "qwen_no_feature_anchor",
+            }:
                 if "natural_text" not in data:
                     raise ValueError(
                         f"Discriminator {self.language_mode} mode requires 'natural_text'."

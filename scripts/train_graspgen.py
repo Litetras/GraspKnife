@@ -64,6 +64,7 @@ LANGUAGE_STATE_KEYWORDS = (
     "qwen",
     "lora",
     "mlp_projector",
+    "language_adapter",
 )
 
 
@@ -126,6 +127,18 @@ def log_unified_language_model_config(model):
         os.environ.get("GRASPGEN_DISABLE_CLIP_ANCHOR", "0"),
     )
     logger.info(
+        "GRASPGEN_DISABLE_FEATURE_ANCHORING = %s",
+        os.environ.get("GRASPGEN_DISABLE_FEATURE_ANCHORING", "0"),
+    )
+    logger.info(
+        "GRASPGEN_DISABLE_LANGUAGE_ADAPTER = %s",
+        os.environ.get("GRASPGEN_DISABLE_LANGUAGE_ADAPTER", "0"),
+    )
+    logger.info(
+        "GRASPGEN_STAGE2_TRAIN_FULL_MODEL = %s",
+        os.environ.get("GRASPGEN_STAGE2_TRAIN_FULL_MODEL", "0"),
+    )
+    logger.info(
         "GRASPGEN_DISABLE_SEMANTIC_NEGATIVES = %s",
         os.environ.get("GRASPGEN_DISABLE_SEMANTIC_NEGATIVES", "0"),
     )
@@ -136,6 +149,9 @@ def log_unified_language_model_config(model):
     logger.info(f"use_clip = {getattr(raw_model, 'use_clip_encoder', False)}")
     logger.info(
         f"use_anchor_loss = {getattr(raw_model, 'use_clip_anchor_loss', False)}"
+    )
+    logger.info(
+        f"use_language_adapter = {getattr(raw_model, 'use_language_adapter', False)}"
     )
     logger.info("===============================================")
 
@@ -178,6 +194,18 @@ def maybe_log_unified_language_batch_examples(model, data, rank):
         os.environ.get("GRASPGEN_DISABLE_CLIP_ANCHOR", "0"),
     )
     logger.info(
+        "GRASPGEN_DISABLE_FEATURE_ANCHORING = %s",
+        os.environ.get("GRASPGEN_DISABLE_FEATURE_ANCHORING", "0"),
+    )
+    logger.info(
+        "GRASPGEN_DISABLE_LANGUAGE_ADAPTER = %s",
+        os.environ.get("GRASPGEN_DISABLE_LANGUAGE_ADAPTER", "0"),
+    )
+    logger.info(
+        "GRASPGEN_STAGE2_TRAIN_FULL_MODEL = %s",
+        os.environ.get("GRASPGEN_STAGE2_TRAIN_FULL_MODEL", "0"),
+    )
+    logger.info(
         "GRASPGEN_DISABLE_SEMANTIC_NEGATIVES = %s",
         os.environ.get("GRASPGEN_DISABLE_SEMANTIC_NEGATIVES", "0"),
     )
@@ -188,6 +216,9 @@ def maybe_log_unified_language_batch_examples(model, data, rank):
     logger.info(f"use_clip = {getattr(raw_model, 'use_clip_encoder', False)}")
     logger.info(
         f"use_anchor_loss = {getattr(raw_model, 'use_clip_anchor_loss', False)}"
+    )
+    logger.info(
+        f"use_language_adapter = {getattr(raw_model, 'use_language_adapter', False)}"
     )
     logger.info("===============================================")
     language_batch_example_logged = True
@@ -673,22 +704,29 @@ def train(rank, cfg):
     init_batch_idx = 0
     init_language_step = 0
 
-    logger.info(f"Attempting to load checkpoint from {cfg.train.checkpoint}")
+    train_checkpoint = cfg.train.checkpoint
+    if train_checkpoint in ("", "none", "None", "null", "Null", "NULL"):
+        train_checkpoint = None
+
+    if train_checkpoint is None:
+        logger.info("No checkpoint requested; training starts from random initialization.")
+    else:
+        logger.info(f"Attempting to load checkpoint from {train_checkpoint}")
     try:
-        if cfg.train.checkpoint is not None:
-            if os.path.exists(cfg.train.checkpoint):
-                ckpt = torch.load(cfg.train.checkpoint, map_location="cpu")
+        if train_checkpoint is not None:
+            if os.path.exists(train_checkpoint):
+                ckpt = torch.load(train_checkpoint, map_location="cpu")
                 init_epoch = ckpt["epoch"]
                 has_language_state = checkpoint_has_language_state(ckpt)
                 load_model_state_with_report(
                     model,
                     ckpt["model"],
-                    cfg.train.checkpoint,
+                    train_checkpoint,
                 )
                 # 2. 注释掉或删掉加载 optimizer 的代码！
                 # 因为我们的 trainable_params 已经彻底换了，旧的 optimizer 不能用了
                 #optimizer.load_state_dict(ckpt["optimizer"])
-                logger.info(f"Loading from checkpoint {cfg.train.checkpoint}")
+                logger.info(f"Loading from checkpoint {train_checkpoint}")
                 init_batch_idx = ckpt["batch_idx"] if "batch_idx" in ckpt else 0
                 if "language_step" in ckpt:
                     init_language_step = ckpt["language_step"]
@@ -701,7 +739,7 @@ def train(rank, cfg):
                         "language anchor warmup will start from step 0."
                     )
             else:
-                logger.warning(f"Checkpoint file not found {cfg.train.checkpoint}")
+                logger.warning(f"Checkpoint file not found {train_checkpoint}")
     except (RuntimeError, EOFError) as e:
         logger.error(e)
         logger.error("Checkpoint last.pth is most likly corrupted")

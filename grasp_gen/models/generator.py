@@ -58,6 +58,7 @@ SUPPORTED_LOD_LANGUAGE_MODES = {
     "qwen_anchor",
     "clip_natural",
     "qwen_no_anchor",
+    "qwen_no_feature_anchor",
 }
 
 
@@ -245,6 +246,18 @@ class GraspGenGenerator(nn.Module):
             "GRASPGEN_DISABLE_CLIP_ANCHOR",
             default=False,
         )
+        self.disable_feature_anchoring = env_bool(
+            "GRASPGEN_DISABLE_FEATURE_ANCHORING",
+            default=False,
+        )
+        self.disable_language_adapter = env_bool(
+            "GRASPGEN_DISABLE_LANGUAGE_ADAPTER",
+            default=False,
+        )
+        self.stage2_train_full_model = env_bool(
+            "GRASPGEN_STAGE2_TRAIN_FULL_MODEL",
+            default=False,
+        )
         self.use_clip_encoder = (
             self.use_language_conditioning
             and (
@@ -252,17 +265,26 @@ class GraspGenGenerator(nn.Module):
                 or (
                     self.language_mode == "qwen_anchor"
                     and not self.disable_clip_anchor
+                    and not self.disable_feature_anchoring
                 )
             )
         )
         self.use_qwen_encoder = (
             self.use_language_conditioning
-            and self.language_mode in {"qwen_anchor", "qwen_no_anchor"}
+            and self.language_mode
+            in {"qwen_anchor", "qwen_no_anchor", "qwen_no_feature_anchor"}
         )
         self.use_clip_anchor_loss = (
             self.use_language_conditioning
             and self.language_mode == "qwen_anchor"
             and not self.disable_clip_anchor
+            and not self.disable_feature_anchoring
+        )
+        self.use_language_adapter = (
+            self.use_qwen_encoder
+            and not self.disable_language_adapter
+            and not self.disable_feature_anchoring
+            and self.language_mode != "qwen_no_feature_anchor"
         )
 # 2.4 抓取表示（Grasp Representation）
 
@@ -323,7 +345,8 @@ class GraspGenGenerator(nn.Module):
             logger.info(
                 "Unified language conditioning enabled: "
                 f"mode={self.language_mode}, clip={self.use_clip_encoder}, "
-                f"qwen={self.use_qwen_encoder}, clip_anchor_loss={self.use_clip_anchor_loss}"
+                f"qwen={self.use_qwen_encoder}, clip_anchor_loss={self.use_clip_anchor_loss}, "
+                f"language_adapter={self.use_language_adapter}"
             )
 
             if self.use_clip_encoder:
@@ -351,16 +374,17 @@ class GraspGenGenerator(nn.Module):
                     target_dim=lang_proj_dim,
                     use_4bit=True,
                 )
-                # Residual bridge: Qwen features learn to land in the CLIP-prior
-                # feature space without changing the frozen grasp prior.
-                self.language_adapter = nn.Sequential(
-                    nn.LayerNorm(lang_proj_dim),
-                    nn.Linear(lang_proj_dim, lang_proj_dim * 2),
-                    nn.GELU(),
-                    nn.Linear(lang_proj_dim * 2, lang_proj_dim),
-                )
-                nn.init.zeros_(self.language_adapter[-1].weight)
-                nn.init.zeros_(self.language_adapter[-1].bias)
+                if self.use_language_adapter:
+                    # Residual bridge: Qwen features learn to land in the CLIP-prior
+                    # feature space without changing the frozen grasp prior.
+                    self.language_adapter = nn.Sequential(
+                        nn.LayerNorm(lang_proj_dim),
+                        nn.Linear(lang_proj_dim, lang_proj_dim * 2),
+                        nn.GELU(),
+                        nn.Linear(lang_proj_dim * 2, lang_proj_dim),
+                    )
+                    nn.init.zeros_(self.language_adapter[-1].weight)
+                    nn.init.zeros_(self.language_adapter[-1].bias)
 
 
 
@@ -441,14 +465,20 @@ class GraspGenGenerator(nn.Module):
 
 
         if self.use_qwen_encoder:
-            logger.info(
-                "Qwen anchor stage: freezing Object Encoder and Diffusion Head; "
-                "training Qwen-LoRA/projector/language adapter only."
-            )
-            for p in self.object_encoder.parameters():
-                p.requires_grad = False
-            for p in self.diffusion_head.parameters():
-                p.requires_grad = False
+            if self.stage2_train_full_model:
+                logger.info(
+                    "Qwen anchor stage: GRASPGEN_STAGE2_TRAIN_FULL_MODEL=1, "
+                    "training object encoder/diffusion head together with Qwen modules."
+                )
+            else:
+                logger.info(
+                    "Qwen anchor stage: freezing Object Encoder and Diffusion Head; "
+                    "training Qwen-LoRA/projector/language adapter only."
+                )
+                for p in self.object_encoder.parameters():
+                    p.requires_grad = False
+                for p in self.diffusion_head.parameters():
+                    p.requires_grad = False
 
 
 
@@ -535,6 +565,11 @@ class GraspGenGenerator(nn.Module):
         clip_feat = self.clip_text_encoder(strict_texts)
         return self.clip_text_projection(clip_feat)
 
+    def _adapt_qwen_features(self, qwen_feat):
+        if self.use_language_adapter:
+            return qwen_feat + self.language_adapter(qwen_feat)
+        return qwen_feat
+
     def _build_train_language_features(self, data, mask_batch):
         if not self.use_language_conditioning:
             return None
@@ -550,7 +585,11 @@ class GraspGenGenerator(nn.Module):
             clip_feat = self._encode_clip_strict_features(natural_texts)
             return clip_feat[mask_batch]
 
-        if self.language_mode in {"qwen_anchor", "qwen_no_anchor"}:
+        if self.language_mode in {
+            "qwen_anchor",
+            "qwen_no_anchor",
+            "qwen_no_feature_anchor",
+        }:
             natural_texts = self._get_language_texts(data, "natural_text")
             clip_feat = None
             if self.use_clip_anchor_loss:
@@ -561,7 +600,7 @@ class GraspGenGenerator(nn.Module):
 
             qwen_feat = self.qwen_text_encoder(natural_texts)
             qwen_feat = qwen_feat[mask_batch]
-            adapted_text_feat = qwen_feat + self.language_adapter(qwen_feat)
+            adapted_text_feat = self._adapt_qwen_features(qwen_feat)
             if clip_feat is not None:
                 data["temp_anchor_loss"] = torch.nn.functional.mse_loss(
                     adapted_text_feat,
@@ -585,11 +624,15 @@ class GraspGenGenerator(nn.Module):
             clip_feat = self._encode_clip_strict_features(natural_texts)
             return clip_feat[mask_batch]
 
-        if self.language_mode in {"qwen_anchor", "qwen_no_anchor"}:
+        if self.language_mode in {
+            "qwen_anchor",
+            "qwen_no_anchor",
+            "qwen_no_feature_anchor",
+        }:
             natural_texts = self._get_language_texts(data, "natural_text")
             qwen_feat = self.qwen_text_encoder(natural_texts)
             qwen_feat = qwen_feat[mask_batch]
-            return qwen_feat + self.language_adapter(qwen_feat)
+            return self._adapt_qwen_features(qwen_feat)
 
         raise ValueError(f"Unsupported language mode: {self.language_mode}")
 

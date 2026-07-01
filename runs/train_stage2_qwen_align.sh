@@ -41,8 +41,16 @@ export SPLIT_DATASET_DIR="${SPLIT_DATASET_DIR:-$OBJECT_DATASET_DIR}"
 export CACHE_DIR="${CACHE_DIR:-$RESULTS_DIR/cache}"
 export PYOPENGL_PLATFORM="${PYOPENGL_PLATFORM:-osmesa}"
 
+is_truthy() {
+    case "${1:-0}" in
+        1|true|True|TRUE|yes|Yes|YES|y|Y) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 # Stage II is language alignment on top of the Stage I prior; empirically it
 # converges much faster than Stage I, so keep the default short.
+export STAGE2_RANDOM_INIT="${STAGE2_RANDOM_INIT:-0}"
 export GEN_NEPOCH="${GEN_NEPOCH:-1000}"
 export GEN_BATCH="${GEN_BATCH:-8}"
 export GEN_PLOT_FREQ="${GEN_PLOT_FREQ:-10}"
@@ -55,7 +63,11 @@ export GEN_LOG_DIR="${GEN_LOG_DIR:-$RESULTS_DIR/logs/stage2_qwen_align_gen}"
 export STAGE1_CHECKPOINT="${STAGE1_CHECKPOINT:-$RESULTS_DIR/logs/stage1_clip_prior_gen/last.pth}"
 export STAGE1_GEN_CHECKPOINT="${STAGE1_GEN_CHECKPOINT:-$STAGE1_CHECKPOINT}"
 export STAGE2_GEN_CHECKPOINT="${STAGE2_GEN_CHECKPOINT:-$GEN_LOG_DIR/last.pth}"
-if [[ -z "${GEN_CHECKPOINT:-}" ]]; then
+export GEN_RANDOM_INIT="${GEN_RANDOM_INIT:-$STAGE2_RANDOM_INIT}"
+if is_truthy "$GEN_RANDOM_INIT"; then
+    export GEN_CHECKPOINT="${GEN_CHECKPOINT:-}"
+    export GEN_RESET_EPOCH_ON_LOAD="${GEN_RESET_EPOCH_ON_LOAD:-False}"
+elif [[ -z "${GEN_CHECKPOINT:-}" ]]; then
     if [[ -f "$STAGE2_GEN_CHECKPOINT" ]]; then
         export GEN_CHECKPOINT="$STAGE2_GEN_CHECKPOINT"
         export GEN_RESET_EPOCH_ON_LOAD="${GEN_RESET_EPOCH_ON_LOAD:-False}"
@@ -82,7 +94,11 @@ export DIS_RATIO="${DIS_RATIO:-[0.50,0.45,0.00,0.05,0.00,0.00,0.00]}"
 export DIS_LOG_DIR="${DIS_LOG_DIR:-$RESULTS_DIR/logs/stage2_qwen_align_dis}"
 export STAGE1_DIS_CHECKPOINT="${STAGE1_DIS_CHECKPOINT:-$RESULTS_DIR/logs/stage1_clip_prior_dis/last.pth}"
 export STAGE2_DIS_CHECKPOINT="${STAGE2_DIS_CHECKPOINT:-$DIS_LOG_DIR/last.pth}"
-if [[ -z "${DIS_CHECKPOINT:-}" ]]; then
+export DIS_RANDOM_INIT="${DIS_RANDOM_INIT:-$STAGE2_RANDOM_INIT}"
+if is_truthy "$DIS_RANDOM_INIT"; then
+    export DIS_CHECKPOINT="${DIS_CHECKPOINT:-}"
+    export DIS_RESET_EPOCH_ON_LOAD="${DIS_RESET_EPOCH_ON_LOAD:-False}"
+elif [[ -z "${DIS_CHECKPOINT:-}" ]]; then
     if [[ -f "$STAGE2_DIS_CHECKPOINT" ]]; then
         export DIS_CHECKPOINT="$STAGE2_DIS_CHECKPOINT"
         export DIS_RESET_EPOCH_ON_LOAD="${DIS_RESET_EPOCH_ON_LOAD:-False}"
@@ -148,7 +164,11 @@ prepare_env() {
 
 run_generator() {
     echo "Running Stage II generator: Qwen anchor alignment"
-    echo "Generator checkpoint: $GEN_CHECKPOINT"
+    if [[ -n "$GEN_CHECKPOINT" ]]; then
+        echo "Generator checkpoint: $GEN_CHECKPOINT"
+    else
+        echo "Generator checkpoint: <none, random init>"
+    fi
     echo "Generator reset_epoch_on_load: $GEN_RESET_EPOCH_ON_LOAD"
     mkdir -p "$GEN_LOG_DIR"
     python train_graspgen.py \
@@ -203,7 +223,11 @@ run_generator() {
 
 run_discriminator() {
     echo "Running Stage II discriminator: Qwen anchor alignment"
-    echo "Discriminator checkpoint: $DIS_CHECKPOINT"
+    if [[ -n "$DIS_CHECKPOINT" ]]; then
+        echo "Discriminator checkpoint: $DIS_CHECKPOINT"
+    else
+        echo "Discriminator checkpoint: <none, random init>"
+    fi
     echo "Discriminator reset_epoch_on_load: $DIS_RESET_EPOCH_ON_LOAD"
     mkdir -p "$DIS_LOG_DIR"
     python train_graspgen.py \
