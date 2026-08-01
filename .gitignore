@@ -11,6 +11,9 @@
 #######################################################
 
 # Temporary and binary files
+*.jpg
+*.csv
+*.png
 *~
 *.py[cod]
 *.so
@@ -39,6 +42,18 @@ tags
 ngc/
 osmo/
 bash/
+/AAAI27_*/
+/aaai27_*/
+/anonymous_code_data_supplement_review_20260731/
+/paper_visualization/
+/supplementary_direction_loss_materials/
+/supplementary_direction_guidance_materials/
+/build_aaai27_sim_package.py
+/dataset_split_audit.md
+/evaluate_aaai27_submission.py
+/evaluate_aaai27_submission.py
+/runs/ablation/
+/tools/
 checkpoints/
 docker/
 notes/
